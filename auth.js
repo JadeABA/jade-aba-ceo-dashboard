@@ -1,35 +1,66 @@
-// Handles Microsoft login and reads your OneDrive Excel files
-
+// Microsoft login using MSAL — modern browser-based auth
 let _token = null;
 
-// Called when you click "Sign in with Microsoft"
 async function signIn() {
-  const url = new URL(`https://login.microsoftonline.com/${CONFIG.tenantId}/oauth2/v2.0/authorize`);
-  url.searchParams.set('client_id',     CONFIG.clientId);
-  url.searchParams.set('response_type', 'token');
-  url.searchParams.set('redirect_uri',  CONFIG.redirectUri);
-  url.searchParams.set('scope',         'Files.Read User.Read');
-  url.searchParams.set('response_mode', 'fragment');
-  window.location.href = url.toString();
+  const authUrl = new URL(`https://login.microsoftonline.com/${CONFIG.tenantId}/oauth2/v2.0/authorize`);
+  authUrl.searchParams.set('client_id',     CONFIG.clientId);
+  authUrl.searchParams.set('response_type', 'code');
+  authUrl.searchParams.set('redirect_uri',  CONFIG.redirectUri);
+  authUrl.searchParams.set('scope',         'openid profile Files.Read User.Read offline_access');
+  authUrl.searchParams.set('response_mode', 'fragment');
+  authUrl.searchParams.set('code_challenge_method', 'plain');
+  authUrl.searchParams.set('code_challenge', 'jade_aba_dashboard_2026');
+  window.location.href = authUrl.toString();
 }
 
-// Runs automatically when the page loads — checks if you just logged in
 function handleLogin() {
-  const params = new URLSearchParams(window.location.hash.substring(1));
-  const token  = params.get('access_token');
-  if (token) {
-    _token = token;
-    sessionStorage.setItem('jade_token', token);
-    window.history.replaceState(null, '', window.location.pathname);
-    return true;
-  }
+  // Check for token in session
   const saved = sessionStorage.getItem('jade_token');
   if (saved) { _token = saved; return true; }
+
+  // Check URL fragment for auth code
+  const hash = window.location.hash.substring(1);
+  const params = new URLSearchParams(hash);
+
+  if (params.get('error')) {
+    console.error('Auth error:', params.get('error_description'));
+    return false;
+  }
   return false;
 }
 
-// Reads one tab from one Excel file on OneDrive
+async function signInPopup() {
+  return new Promise((resolve) => {
+    const authUrl = new URL(`https://login.microsoftonline.com/${CONFIG.tenantId}/oauth2/v2.0/authorize`);
+    authUrl.searchParams.set('client_id',     CONFIG.clientId);
+    authUrl.searchParams.set('response_type', 'token');
+    authUrl.searchParams.set('redirect_uri',  CONFIG.redirectUri);
+    authUrl.searchParams.set('scope',         'Files.Read User.Read');
+    authUrl.searchParams.set('response_mode', 'fragment');
+    authUrl.searchParams.set('nonce',         Date.now().toString());
+    authUrl.searchParams.set('prompt',        'select_account');
+
+    const popup = window.open(authUrl.toString(), 'auth', 'width=500,height=600,scrollbars=yes');
+
+    const timer = setInterval(() => {
+      try {
+        if (popup.closed) { clearInterval(timer); resolve(false); return; }
+        const hash = popup.location.hash;
+        if (hash && hash.includes('access_token')) {
+          const p = new URLSearchParams(hash.substring(1));
+          _token = p.get('access_token');
+          sessionStorage.setItem('jade_token', _token);
+          popup.close();
+          clearInterval(timer);
+          resolve(true);
+        }
+      } catch(e) { /* cross-origin, keep waiting */ }
+    }, 500);
+  });
+}
+
 async function readSheet(fileId, sheetName) {
+  if (!_token) return [];
   const url = `https://graph.microsoft.com/v1.0/me/drive/items/${fileId}/workbook/worksheets('${encodeURIComponent(sheetName)}')/usedRange`;
   const res  = await fetch(url, { headers: { Authorization: `Bearer ${_token}` } });
   if (!res.ok) { console.error('Could not read', sheetName, res.status); return []; }
@@ -46,8 +77,8 @@ async function readSheet(fileId, sheetName) {
     });
 }
 
-// Reads a specific cell from the utilization dashboard tab
 async function readCell(fileId, sheetName, cellAddress) {
+  if (!_token) return null;
   const url = `https://graph.microsoft.com/v1.0/me/drive/items/${fileId}/workbook/worksheets('${encodeURIComponent(sheetName)}')/range(address='${cellAddress}')`;
   const res  = await fetch(url, { headers: { Authorization: `Bearer ${_token}` } });
   if (!res.ok) return null;
@@ -55,7 +86,6 @@ async function readCell(fileId, sheetName, cellAddress) {
   return data.values?.[0]?.[0] ?? null;
 }
 
-// Loads ALL your Excel data at once
 async function loadAllData() {
   const f = CONFIG.files;
   const [arRows, bcbaRows, intakeRows, recruitRows, caseRows] = await Promise.all([
@@ -65,7 +95,6 @@ async function loadAllData() {
     readSheet(f.recruiting.fileId, f.recruiting.sheetName),
     readSheet(f.caseCoord.fileId,  f.caseCoord.sheetName),
   ]);
-  // Read the utilization summary cells individually
   const uc = f.utilization.cells;
   const [totalAuth, totalAvail, totalSched, utilPct, clientsLow, therapistsLow, openHrs] = await Promise.all([
     readCell(f.utilization.fileId, f.utilization.sheetName, uc.totalAuthorized),
@@ -82,7 +111,6 @@ async function loadAllData() {
   };
 }
 
-// Gets the most recent row from any dataset
 function latestRow(rows, weekCol) {
   if (!rows?.length) return {};
   return rows.reduce((best, row) => {
@@ -91,7 +119,6 @@ function latestRow(rows, weekCol) {
   }, {});
 }
 
-// Filters rows to only those within the selected date range
 function filterRange(rows, weekCol, range) {
   if (!rows?.length) return [];
   const now    = new Date();
@@ -103,9 +130,14 @@ function filterRange(rows, weekCol, range) {
   return rows.filter(row => { const d = new Date(row[weekCol]); return !isNaN(d) && d >= cutoff; });
 }
 
-// Converts any value to a clean number
 function n(val) {
   if (val === null || val === undefined || val === '') return 0;
-  const clean = String(val).replace(/[$,%]/g, '').trim();
-  return parseFloat(clean) || 0;
+  return parseFloat(String(val).replace(/[$,%]/g, '').trim()) || 0;
 }
+```
+
+Also go to `index.html` → pencil ✏️ → find this line:
+```
+window.addEventListener('load', () => {
+  if (handleLogin()) { startApp(); }
+});
