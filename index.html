@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jade ABA — CEO Dashboard</title>
+<script src="config.js"></script>
+<script src="auth.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--jade:#1a7a5e;--jade2:#e8f5f0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f0f2f5;color:#111;min-height:100vh}
+
+/* LOGIN */
+#login{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;gap:16px;text-align:center;padding:24px}
+#login .mark{width:64px;height:64px;background:var(--jade);border-radius:16px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:28px;font-weight:700;margin:0 auto 8px}
+#login h1{font-size:22px;font-weight:600}
+#login p{font-size:14px;color:#666;max-width:320px}
+.sign-in-btn{background:var(--jade);color:#fff;border:none;padding:14px 32px;border-radius:10px;font-size:15px;cursor:pointer;display:flex;align-items:center;gap:10px;margin-top:8px}
+.sign-in-btn:hover{opacity:.9}
+
+/* LOADING */
+#loading{display:none;position:fixed;inset:0;background:rgba(255,255,255,.92);flex-direction:column;align-items:center;justify-content:center;gap:14px;z-index:1000}
+.spin{width:40px;height:40px;border:3px solid #e0e0e0;border-top-color:var(--jade);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+#loading p{font-size:14px;color:#666}
+
+/* APP */
+#app{display:none;padding:0 0 40px}
+
+/* TOPBAR */
+.topbar{background:#fff;border-bottom:1px solid #e5e7eb;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;position:sticky;top:0;z-index:100}
+.topbar-left{display:flex;align-items:center;gap:12px}
+.mark-sm{width:34px;height:34px;background:var(--jade);border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:14px;flex-shrink:0}
+.topbar h1{font-size:15px;font-weight:600}
+.topbar .sub{font-size:11px;color:#999}
+.topbar-right{display:flex;align-items:center;gap:10px}
+#last-sync{font-size:11px;color:#aaa}
+.refresh-btn{background:transparent;border:1px solid #e5e7eb;padding:6px 14px;border-radius:7px;font-size:12px;cursor:pointer;color:#555}
+.refresh-btn:hover{background:#f9fafb}
+
+/* DATE BAR */
+.date-bar{display:flex;align-items:center;gap:4px;background:#fff;border-bottom:1px solid #e5e7eb;padding:8px 20px;overflow-x:auto}
+.date-bar label{font-size:11px;color:#aaa;white-space:nowrap;margin-right:6px}
+.df{padding:6px 16px;border:none;border-radius:20px;font-size:12px;background:transparent;color:#666;cursor:pointer;white-space:nowrap}
+.df:hover{background:#f0f2f5}
+.df.active{background:var(--jade);color:#fff;font-weight:500}
+
+/* NAV */
+.nav{display:flex;gap:4px;padding:12px 20px;background:#f0f2f5;overflow-x:auto;flex-wrap:nowrap}
+.nb{padding:7px 18px;border:1px solid #dde0e4;border-radius:20px;font-size:12px;background:#fff;color:#444;cursor:pointer;white-space:nowrap;flex-shrink:0}
+.nb:hover{background:#f9fafb}
+.nb.active{background:var(--jade);color:#fff;border-color:var(--jade)}
+
+/* CONTENT */
+.content{padding:16px 20px}
+.sec{display:none}.sec.active{display:block}
+
+/* KPI STRIP */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:16px}
+.kpi{background:#fff;border-radius:10px;padding:14px 16px;border:1px solid #e9ebee}
+.kpi-lbl{font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px}
+.kpi-val{font-size:26px;font-weight:700;color:#111;line-height:1}
+.kpi-sub{font-size:11px;margin-top:5px}
+.good{color:#166534}.warn{color:#92400e}.bad{color:#991b1b}.muted{color:#999}
+
+/* CARDS */
+.card{background:#fff;border:1px solid #e9ebee;border-radius:12px;padding:18px;margin-bottom:14px}
+.card h3{font-size:13px;font-weight:600;margin-bottom:14px;color:#333}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+
+/* TABLE */
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;color:#999;font-weight:500;font-size:11px;padding:8px 10px;border-bottom:1px solid #f0f0f0;text-transform:uppercase;letter-spacing:.03em}
+td{padding:10px 10px;border-bottom:1px solid #f9f9f9;color:#222}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#fafafa}
+
+/* BADGES */
+.badge{font-size:11px;padding:3px 9px;border-radius:8px;font-weight:500;white-space:nowrap}
+.bg{background:#dcfce7;color:#166534}
+.ba{background:#fef9c3;color:#854d0e}
+.br{background:#fee2e2;color:#991b1b}
+.bb{background:#dbeafe;color:#1e40af}
+
+/* PROGRESS */
+.prog{height:10px;background:#f0f0f0;border-radius:5px;overflow:hidden;margin-top:6px}
+.prog-fill{height:100%;border-radius:5px;transition:width .5s}
+
+/* BAR ROWS */
+.bar-row{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.bar-lbl{font-size:12px;color:#666;width:120px;text-align:right;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar-track{flex:1;height:20px;background:#f0f2f5;border-radius:5px;overflow:hidden}
+.bar-fill{height:100%;border-radius:5px;display:flex;align-items:center;padding-left:8px;font-size:11px;color:#fff;font-weight:600;min-width:30px;transition:width .5s}
+.bar-num{font-size:12px;color:#888;width:45px;text-align:right;flex-shrink:0}
+
+/* AGING */
+.aging{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+.bucket{flex:1;min-width:75px;background:#f9fafb;border-radius:9px;padding:12px;text-align:center;border:1px solid #f0f0f0}
+.bucket-amt{font-size:18px;font-weight:700}
+.bucket-lbl{font-size:11px;color:#888;margin-top:3px}
+.bwarn .bucket-amt{color:#92400e}
+.bdanger .bucket-amt{color:#991b1b}
+
+/* HEALTH GRID */
+.hgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.hitem{display:flex;align-items:center;justify-content:space-between;background:#f9fafb;border-radius:8px;padding:11px 14px}
+.hlbl{font-size:13px;color:#444}
+.hright{display:flex;align-items:center;gap:8px}
+.hval{font-size:16px;font-weight:700}
+.dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.dg{background:#22c55e}.da{background:#f59e0b}.dr{background:#ef4444}
+
+/* FUNNEL */
+.funnel-row{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.funnel-lbl{font-size:12px;color:#555;width:160px;flex-shrink:0}
+.funnel-track{flex:1;height:24px;background:#f0f2f5;border-radius:6px;overflow:hidden}
+.funnel-fill{height:100%;background:#185FA5;border-radius:6px;display:flex;align-items:center;justify-content:flex-end;padding-right:10px;font-size:12px;color:#fff;font-weight:600;min-width:32px;transition:width .5s}
+.funnel-n{font-size:14px;font-weight:600;width:35px;text-align:right;flex-shrink:0}
+
+/* ALERT BOX */
+.alert{background:#fef9c3;border:1px solid #fbbf24;border-radius:8px;padding:11px 14px;font-size:12px;color:#713f12;margin-bottom:14px;line-height:1.6}
+
+@media(max-width:640px){
+  .two-col,.hgrid{grid-template-columns:1fr}
+  .kpi-val{font-size:22px}
+  .bar-lbl{width:80px;font-size:11px}
+  .content{padding:12px}
+}
+</style>
+</head>
+<body>
+
+<!-- LOGIN SCREEN -->
+<div id="login">
+  <div>
+    <div class="mark">J</div>
+    <h1>Jade ABA Therapy</h1>
+    <p>CEO Dashboard — sign in with your Microsoft account to view your company data</p>
+    <center>
+      <button class="sign-in-btn" onclick="signIn()">
+        <svg width="18" height="18" viewBox="0 0 21 21"><rect x="1" y="1" width="9" height="9" fill="#f25022"/><rect x="11" y="1" width="9" height="9" fill="#7fba00"/><rect x="1" y="11" width="9" height="9" fill="#00a4ef"/><rect x="11" y="11" width="9" height="9" fill="#ffb900"/></svg>
+        Sign in with Microsoft
+      </button>
+    </center>
+  </div>
+</div>
+
+<!-- LOADING -->
+<div id="loading">
+  <div class="spin"></div>
+  <p>Loading your dashboard data from OneDrive...</p>
+</div>
+
+<!-- DASHBOARD -->
+<div id="app">
+
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="mark-sm">J</div>
+      <div>
+        <div class="topbar h1" style="font-size:15px;font-weight:600">Jade ABA Therapy — CEO Dashboard</div>
+        <div class="sub" id="last-sync">Connecting...</div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <button class="refresh-btn" onclick="loadDashboard()">↻ Refresh data</button>
+    </div>
+  </div>
+
+  <div class="date-bar">
+    <label>Showing:</label>
+    <button class="df active" data-r="wtd"  onclick="setRange(this)">Week to Date</button>
+    <button class="df"        data-r="mtd"  onclick="setRange(this)">Month to Date</button>
+    <button class="df"        data-r="qtd"  onclick="setRange(this)">Quarter to Date</button>
+    <button class="df"        data-r="ytd"  onclick="setRange(this)">Year to Date</button>
+  </div>
+
+  <div class="nav">
+    <button class="nb active" onclick="show('overview',this)">Overview</button>
+    <button class="nb"        onclick="show('ar',this)">AR &amp; Collections</button>
+    <button class="nb"        onclick="show('util',this)">Utilization</button>
+    <button class="nb"        onclick="show('bcba',this)">BCBA Billable</button>
+    <button class="nb"        onclick="show('intake',this)">Client Intake</button>
+    <button class="nb"        onclick="show('cases',this)">Case Coordination</button>
+    <button class="nb"        onclick="show('recruit',this)">Recruiting</button>
+  </div>
+
+  <div class="content">
+
+    <!-- OVERVIEW -->
+    <div class="sec active" id="s-overview">
+      <div class="kpis">
+        <div class="kpi"><div class="kpi-lbl">Total AR</div><div class="kpi-val" id="ov-ar">—</div><div class="kpi-sub muted">Outstanding balance</div></div>
+        <div class="kpi"><div class="kpi-lbl">Utilization</div><div class="kpi-val" id="ov-util">—</div><div class="kpi-sub" id="ov-util-sub"></div></div>
+        <div class="kpi"><div class="kpi-lbl">New Leads</div><div class="kpi-val" id="ov-leads">—</div><div class="kpi-sub muted">This period</div></div>
+        <div class="kpi"><div class="kpi-lbl">Open Positions</div><div class="kpi-val" id="ov-open">—</div><div class="kpi-sub muted">BCBA + RBT</div></div>
+        <div class="kpi"><div class="kpi-lbl">Cases Delayed</div><div class="kpi-val" id="ov-delayed">—</div><div class="kpi-sub muted">Due to staffing</div></div>
+        <div class="kpi"><div class="kpi-lbl">Active Cases</div><div class="kpi-val" id="ov-cases">—</div><div class="kpi-sub muted">Case coordination</div></div>
+      </div>
+      <div class="card">
+        <h3>Company Health — Quick View</h3>
+        <div class="hgrid" id="health-grid"></div>
+      </div>
+      <div class="card">
+        <h3>AR Aging Snapshot</h3>
+        <div class="aging" id="ov-aging"></div>
+      </div>
+      <div class="card">
+        <h3>Intake Funnel — This Period</h3>
+        <div id="ov-funnel"></div>
+      </div>
+    </div>
+
+    <!-- AR & COLLECTIONS -->
+    <div class="sec" id="s-ar">
+      <div class="kpis">
+        <div class="kpi"><div class="kpi-lbl">Total AR Balance</div><div class="kpi-val" id="ar-total">—</div></div>
+        <div class="kpi"><div class="kpi-lbl">AR 0–30 Days</div><div class="kpi-val" id="ar-0">—</div><div class="kpi-sub good">Cleanest bucket</div></div>
+        <div class="kpi"><div class="kpi-lbl">AR 31–60 Days</div><div class="kpi-val" id="ar-31">—</div></div>
+        <div class="kpi"><div class="kpi-lbl">AR 61–90 Days</div><div class="kpi-val" id="ar-61">—</div><div class="kpi-sub warn">Needs follow-up</div></div>
+        <div class="kpi"><div class="kpi-lbl">AR 90+ Days</div><div class="kpi-val" id="ar-90">—</div><div class="kpi-sub bad">Urgent</div></div>
+      </div>
+      <div class="card">
+        <h3>Aging Buckets</h3>
+        <div class="aging" id="ar-aging"></div>
+        <p style="font-size:12px;color:#999;margin-top:8px">Target: 0–30 days should be &gt;70% of total AR. Anything in 90+ needs immediate action.</p>
+      </div>
+      <div class="card">
+        <h3>AR Trend — Weekly</h3>
+        <div style="position:relative;height:200px"><canvas id="ar-chart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- UTILIZATION -->
+    <div class="sec" id="s-util">
+      <div class="kpis">
+        <div class="kpi"><div class="kpi-lbl">Overall Utilization</div><div class="kpi-val" id="u-pct">—</div><div class="kpi-sub" id="u-pct-sub"></div></div>
+        <div class="kpi"><div class="kpi-lbl">Authorized Hours</div><div class="kpi-val" id="u-auth">—</div></div>
+        <div class="kpi"><div class="kpi-lbl">Available Hours</div><div class="kpi-val" id="u-avail">—</div></div>
+        <div class="kpi"><div class="kpi-lbl">Scheduled Hours</div><div class="kpi-val" id="u-sched">—</div></div>
+        <div class="kpi"><div class="kpi-lbl">Open Hours</div><div class="kpi-val" id="u-open">—</div><div class="kpi-sub warn">Avail minus scheduled</div></div>
+      </div>
+      <div class="alert" id="util-alert"></div>
+      <div class="two-col">
+        <div class="card">
+          <h3>Clients Under 80% Utilized</h3>
+          <div class="kpi-val bad" id="u-clients-low" style="font-size:36px;margin-bottom:6px">—</div>
+          <p style="font-size:12px;color:#888">Clients receiving less than 80% of their authorized hours — revenue and clinical risk</p>
+        </div>
+        <div class="card">
+          <h3>Therapists Under 70% Utilized</h3>
+          <div class="kpi-val warn" id="u-therapists-low" style="font-size:36px;margin-bottom:6px">—</div>
+          <p style="font-size:12px;color:#888">Therapists scheduled below 70% capacity — efficiency opportunity</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- BCBA BILLABLE -->
+    <div class="sec" id="s-bcba">
+      <div class="kpis">
+        <div class="kpi"><div class="kpi-lbl">BCBAs Tracked</div><div class="kpi-val" id="b-total">—</div></div>
+        <div class="kpi"><div class="kpi-lbl">Meeting Target</div><div class="kpi-val good" id="b-meet">—</div></div>
+        <div class="kpi"><div class="kpi-lbl">Below Target</div><div class="kpi-val bad" id="b-below">—</div></div>
+        <div class="kpi"><div class="kpi-lbl">Avg Billable Hrs</div><div class="kpi-val" id="b-avg">—</div></div>
+      </div>
+      <div class="card">
+        <h3>BCBA Billable Hours — Most Recent Week</h3>
+        <table>
+          <thead><tr><th>BCBA Name</th><th>Billable Hrs</th><th>Target</th><th>% to Target</th><th>Status</th></tr></thead>
+          <tbody id="bcba-tbody"></tbody>
+        </table>
+      </div>
+      <div class="card">
+        <h3>Billable Hours Trend</h3>
+        <div style="position:relative;height:200px"><canvas id="bcba-chart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- INTAKE -->
+    <div class="sec" id="s-intake">
+      <div class="kpis">
+        <div class="kpi"><div class="kpi-lbl">New Leads</div><div class="kpi-val" id="i-leads">—</div></div>
+        <div class="kpi"><div class="kpi-lbl">Contacted &lt;24h</div><div class="kpi-val" id="i-contact">—</div></div>
+        <div class="kpi"><div class="kpi-lbl">% Contacted</div><div class="kpi-val" id="i-pct">—</div></div>
+        <div class="kpi"><div class="kpi-lbl">Intakes Completed</div><div class="kpi-val" id="i-done">—</div></div>
+        <div class="kpi"><div class="kpi-lbl">Conversion %</div><div class="kpi-val" id="i-conv">—</div></div>
+        <div class="kpi"><div class="kpi-lbl">Avg Days to Intake</div><div class="kpi-val" id="i-days">—</div></div>
+        <div class="kpi"><div class="kpi-lbl">Pending Documents</div><div class="kpi-val" id="i-docs">—</div></div>
+        <div class="kpi"><div class="kpi-lbl">Referral Outreach</div><div class="kpi-val" id="i-ref">—</div></div>
+      </div>
+      <div class="card">
+        <h3>Intake Funnel</h3>
+        <div id="intake-funnel"></div>
+      </div>
+      <div class="card">
+        <h3>Weekly Trend — New Leads vs Intakes Completed</h3>
+        <div style="position:relative;height:200px"><canvas id="intake-chart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- CASE COORDINATION -->
+    <div class="sec" id="s-cases">
+      <div class="kpis">
+        <div class="kpi"><div class="kpi-lbl">Active Cases</div><div class="kpi-val" id="cc-active">—</div></div>
+        <div class="kpi"><div class="kpi-lbl">Unstaffed Cases</div><div class="kpi-val bad" id="cc-unstaff">—</div><div class="kpi-sub bad">Need RBT assigned</div></div>
+        <div class="kpi"><div class="kpi-lbl">Cases Launched</div><div class="kpi-val" id="cc-launch">—</div><div class="kpi-sub muted">This period</div></div>
+        <div class="kpi"><div class="kpi-lbl">Avg Days Intake→Start</div><div class="kpi-val" id="cc-days">—</div></div>
+      </div>
+      <div class="card">
+        <h3>Case Coordination — Weekly Trend</h3>
+        <div style="position:relative;height:200px"><canvas id="case-chart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- RECRUITING -->
+    <div class="sec" id="s-recruit">
+      <div class="kpis">
+        <div class="kpi"><div class="kpi-lbl">Open BCBA Spots</div><div class="kpi-val bad" id="r-bcba">—</div></div>
+        <div class="kpi"><div class="kpi-lbl">Open RBT Spots</div><div class="kpi-val bad" id="r-rbt">—</div></div>
+        <div class="kpi"><div class="kpi-lbl">Applications</div><div class="kpi-val" id="r-apps">—</div></div>
+        <div class="kpi"><div class="kpi-lbl">Interviews</div><div class="kpi-val" id="r-int">—</div></div>
+        <div class="kpi"><div class="kpi-lbl">Offers</div><div class="kpi-val" id="r-offer">—</div></div>
+        <div class="kpi"><div class="kpi-lbl">Hires</div><div class="kpi-val good" id="r-hire">—</div></div>
+        <div class="kpi"><div class="kpi-lbl">Hire Rate</div><div class="kpi-val" id="r-rate">—</div></div>
+        <div class="kpi"><div class="kpi-lbl">Cases Delayed</div><div class="kpi-val bad" id="r-delay">—</div><div class="kpi-sub bad">Due to no staff</div></div>
+      </div>
+      <div class="card">
+        <h3>Recruiting Pipeline — Latest Week</h3>
+        <div id="recruit-bars"></div>
+      </div>
+      <div class="card">
+        <h3>Hiring Trend — Applications to Hires</h3>
+        <div style="position:relative;height:200px"><canvas id="recruit-chart"></canvas></div>
+      </div>
+    </div>
+
+  </div><!-- end content -->
+</div><!-- end app -->
+
+<script>
+let D = {};
+let range = 'wtd';
+let charts = {};
+
+// ── STARTUP ───────────────────────────────────────────────────
+window.addEventListener('load', () => {
+  if (handleLogin()) { startApp(); }
+});
+
+function startApp() {
+  document.getElementById('login').style.display   = 'none';
+  document.getElementById('app').style.display     = 'block';
+  loadDashboard();
+}
+
+async function loadDashboard() {
+  document.getElementById('loading').style.display = 'flex';
+  try {
+    D = await loadAllData();
+    renderAll();
+    document.getElementById('last-sync').textContent =
+      'Last synced: ' + new Date().toLocaleString('en-US',{weekday:'short',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});
+  } catch(e) {
+    console.error(e);
+    alert('Could not load data from OneDrive.\n\nCheck that your File IDs and tab names in config.js are correct, then refresh.\n\nError: ' + e.message);
+  }
+  document.getElementById('loading').style.display = 'none';
+}
+
+// ── NAV ───────────────────────────────────────────────────────
+function show(id, btn) {
+  document.querySelectorAll('.sec').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nb').forEach(b  => b.classList.remove('active'));
+  document.getElementById('s-' + id).classList.add('active');
+  btn.classList.add('active');
+}
+function setRange(btn) {
+  document.querySelectorAll('.df').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  range = btn.dataset.r;
+  renderAll();
+}
+
+// ── HELPERS ───────────────────────────────────────────────────
+function fmt(v)   { if(!v&&v!==0) return '—'; if(v>=1000000) return '$'+(v/1000000).toFixed(1)+'M'; if(v>=1000) return '$'+(v/1000).toFixed(0)+'K'; return '$'+Math.round(v); }
+function fmtN(v)  { return (v===0||v) ? Math.round(v) : '—'; }
+function fmtPct(v){ return (v===0||v) ? Math.round(v*100)+'%' : '—'; }
+function el(id)   { return document.getElementById(id); }
+function set(id, val){ const e=el(id); if(e) e.textContent = val; }
+function badge(v, ok, warn, labels=['On Track','Watch','Below']) {
+  const cls = v>=ok?'bg':v>=warn?'ba':'br';
+  const lbl = v>=ok?labels[0]:v>=warn?labels[1]:labels[2];
+  return `<span class="badge ${cls}">${lbl}</span>`;
+}
+function colorBar(pct) { return pct>=85?'#1a7a5e':pct>=70?'#f59e0b':'#ef4444'; }
+
+// ── RENDER ALL ────────────────────────────────────────────────
+function renderAll() {
+  const cf = CONFIG.files;
+
+  // Get latest rows from each sheet
+  const arLast   = latestRow(D.arRows,      cf.ar.columns.weekStart);
+  const ccLast   = latestRow(D.caseRows,    cf.caseCoord.columns.weekStart);
+  const recLast  = latestRow(D.recruitRows, cf.recruiting.columns.weekStart);
+
+  // Sum intake rows for the selected range
+  const intakeFiltered = filterRange(D.intakeRows, cf.intake.columns.weekStart, range);
+  const recFiltered    = filterRange(D.recruitRows, cf.recruiting.columns.weekStart, range);
+
+  // BCBA — group by person, get latest week per person
+  const bcbaByName = {};
+  (D.bcbaRows||[]).forEach(row => {
+    const name = row[cf.bcba.columns.bcbaName];
+    const d    = new Date(row[cf.bcba.columns.weekStart]);
+    if (!name) return;
+    if (!bcbaByName[name] || d > new Date(bcbaByName[name][cf.bcba.columns.weekStart])) {
+      bcbaByName[name] = row;
+    }
+  });
+  const bcbaLatest = Object.values(bcbaByName);
+
+  // Derived AR values
+  const totalAR = n(arLast[cf.ar.columns.totalAR]);
+  const a0      = n(arLast[cf.ar.columns.ar0_30]);
+  const a31     = n(arLast[cf.ar.columns.ar31_60]);
+  const a61     = n(arLast[cf.ar.columns.ar61_90]);
+  const a90     = n(arLast[cf.ar.columns.ar90plus]);
+
+  // Utilization from summary cells
+  const util    = D.util || {};
+  const utilPct = n(util.utilPct) * (n(util.utilPct) <= 1 ? 100 : 1); // handle decimal or percent
+
+  // Intake totals for range
+  const totalLeads   = intakeFiltered.reduce((s,r)=>s+n(r[cf.intake.columns.newLeads]),0);
+  const totalContact = intakeFiltered.reduce((s,r)=>s+n(r[cf.intake.columns.contacted24h]),0);
+  const totalIntakes = intakeFiltered.reduce((s,r)=>s+n(r[cf.intake.columns.intakesCompleted]),0);
+  const totalDocs    = intakeFiltered.reduce((s,r)=>s+n(r[cf.intake.columns.pendingDocs]),0);
+  const totalRefOut  = intakeFiltered.reduce((s,r)=>s+n(r[cf.intake.columns.referralOutreach]),0);
+  const avgDays      = intakeFiltered.length ? intakeFiltered.reduce((s,r)=>s+n(r[cf.intake.columns.avgDaysToIntake]),0)/intakeFiltered.length : 0;
+
+  // Recruiting totals
+  const openBCBA  = n(recLast[cf.recruiting.columns.openBCBA]);
+  const openRBT   = n(recLast[cf.recruiting.columns.openRBT]);
+  const totalApps = recFiltered.reduce((s,r)=>s+n(r[cf.recruiting.columns.applications]),0);
+  const totalInts = recFiltered.reduce((s,r)=>s+n(r[cf.recruiting.columns.interviews]),0);
+  const totalOff  = recFiltered.reduce((s,r)=>s+n(r[cf.recruiting.columns.offers]),0);
+  const totalHire = recFiltered.reduce((s,r)=>s+n(r[cf.recruiting.columns.hires]),0);
+  const totalDel  = recFiltered.reduce((s,r)=>s+n(r[cf.recruiting.columns.casesDelayed]),0);
+  const hireRate  = n(recLast[cf.recruiting.columns.hireRate]);
+
+  // Case coordination
+  const activeCases    = n(ccLast[cf.caseCoord.columns.activeCases]);
+  const unstaffedCases = n(ccLast[cf.caseCoord.columns.unstaffedCases]);
+  const casesLaunched  = n(ccLast[cf.caseCoord.columns.casesLaunched]);
+  const avgDaysIntake  = n(ccLast[cf.caseCoord.columns.avgDaysIntake]);
+
+  // BCBA metrics
+  const bcbaTotal  = bcbaLatest.length;
+  const bcbaMeet   = bcbaLatest.filter(r => n(r[cf.bcba.columns.pctToTarget]) >= 1).length;
+  const bcbaAvg    = bcbaTotal ? bcbaLatest.reduce((s,r)=>s+n(r[cf.bcba.columns.billableHours]),0)/bcbaTotal : 0;
+
+  // ── OVERVIEW ──────────────────────────────────────────────
+  set('ov-ar',      fmt(totalAR));
+  set('ov-util',    Math.round(utilPct)+'%');
+  el('ov-util-sub').textContent = utilPct>=CONFIG.utilizationTarget?'On target':'Below target';
+  el('ov-util-sub').className   = 'kpi-sub '+(utilPct>=CONFIG.utilizationTarget?'good':'bad');
+  set('ov-leads',   fmtN(totalLeads));
+  set('ov-open',    fmtN(openBCBA+openRBT));
+  set('ov-delayed', fmtN(totalDel));
+  set('ov-cases',   fmtN(activeCases));
+
+  // Health grid
+  const health = [
+    {lbl:'Utilization',        val:Math.round(utilPct)+'%',     ok:utilPct>=CONFIG.utilizationTarget,  warn:utilPct>=70},
+    {lbl:'BCBA at Target',     val:bcbaTotal?Math.round(bcbaMeet/bcbaTotal*100)+'%':'—', ok:bcbaTotal&&bcbaMeet/bcbaTotal>=0.9, warn:bcbaTotal&&bcbaMeet/bcbaTotal>=0.75},
+    {lbl:'Unstaffed Cases',    val:fmtN(unstaffedCases),        ok:unstaffedCases===0,                 warn:unstaffedCases<=3},
+    {lbl:'Leads Contacted <24h',val:totalLeads?Math.round(totalContact/totalLeads*100)+'%':'—', ok:totalLeads&&totalContact/totalLeads>=0.9, warn:totalLeads&&totalContact/totalLeads>=0.7},
+    {lbl:'AR 90+ of Total',    val:totalAR?Math.round(a90/totalAR*100)+'%':'—',         ok:totalAR&&a90/totalAR<=0.1, warn:totalAR&&a90/totalAR<=0.2},
+    {lbl:'Cases Delayed',      val:fmtN(totalDel),              ok:totalDel===0,                       warn:totalDel<=3},
+  ];
+  el('health-grid').innerHTML = health.map(h=>{
+    const dotCls = h.val==='—'?'da':h.ok?'dg':'dr';
+    return `<div class="hitem"><span class="hlbl">${h.lbl}</span><div class="hright"><span class="hval">${h.val}</span><span class="dot ${dotCls}"></span></div></div>`;
+  }).join('');
+
+  // AR aging snapshot on overview
+  const agingHTML = html => `
+    <div class="aging">
+      <div class="bucket"><div class="bucket-amt">${fmt(a0)}</div><div class="bucket-lbl">0–30 days</div></div>
+      <div class="bucket bwarn"><div class="bucket-amt">${fmt(a31)}</div><div class="bucket-lbl">31–60 days</div></div>
+      <div class="bucket bwarn"><div class="bucket-amt">${fmt(a61)}</div><div class="bucket-lbl">61–90 days</div></div>
+      <div class="bucket bdanger"><div class="bucket-amt">${fmt(a90)}</div><div class="bucket-lbl">90+ days</div></div>
+    </div>`;
+  el('ov-aging').innerHTML  = agingHTML();
+  el('ar-aging').innerHTML  = agingHTML();
+
+  // Overview funnel
+  const funnelMax = totalLeads || 1;
+  const funnelHTML = `
+    ${[['New Leads',totalLeads],['Contacted <24h',totalContact],['Intakes Completed',totalIntakes]].map(([l,v])=>`
+    <div class="funnel-row">
+      <div class="funnel-lbl">${l}</div>
+      <div class="funnel-track"><div class="funnel-fill" style="width:${Math.round(v/funnelMax*100)}%">${v||0}</div></div>
+      <div class="funnel-n">${v||0}</div>
+    </div>`).join('')}`;
+  el('ov-funnel').innerHTML    = funnelHTML;
+  el('intake-funnel').innerHTML= funnelHTML;
+
+  // ── AR ────────────────────────────────────────────────────
+  set('ar-total', fmt(totalAR));
+  set('ar-0',  fmt(a0));
+  set('ar-31', fmt(a31));
+  set('ar-61', fmt(a61));
+  set('ar-90', fmt(a90));
+  renderLineChart('ar-chart', D.arRows, cf.ar.columns.weekStart, cf.ar.columns.totalAR, 'Total AR', '#1a7a5e');
+
+  // ── UTILIZATION ───────────────────────────────────────────
+  set('u-pct',   Math.round(utilPct)+'%');
+  el('u-pct-sub').textContent = utilPct>=CONFIG.utilizationTarget?'✓ On target':'Below '+CONFIG.utilizationTarget+'% target';
+  el('u-pct-sub').className   = 'kpi-sub '+(utilPct>=CONFIG.utilizationTarget?'good':'bad');
+  set('u-auth',  fmtN(n(util.totalAuth))+' hrs');
+  set('u-avail', fmtN(n(util.totalAvail))+' hrs');
+  set('u-sched', fmtN(n(util.totalSched))+' hrs');
+  set('u-open',  fmtN(n(util.openHrs))+' hrs');
+  set('u-clients-low',    fmtN(n(util.clientsLow)));
+  set('u-therapists-low', fmtN(n(util.therapistsLow)));
+  el('util-alert').textContent = n(util.clientsLow)>0||n(util.therapistsLow)>0
+    ? `⚠ ${n(util.clientsLow)} client(s) below 80% utilization and ${n(util.therapistsLow)} therapist(s) below 70% — review scheduling to recover lost hours.`
+    : '✓ All clients and therapists are meeting utilization targets this week.';
+
+  // ── BCBA ──────────────────────────────────────────────────
+  set('b-total', fmtN(bcbaTotal));
+  set('b-meet',  fmtN(bcbaMeet));
+  set('b-below', fmtN(bcbaTotal-bcbaMeet));
+  set('b-avg',   bcbaAvg.toFixed(1)+' hrs');
+  el('bcba-tbody').innerHTML = bcbaLatest.length
+    ? bcbaLatest.sort((a,b)=>n(b[cf.bcba.columns.pctToTarget])-n(a[cf.bcba.columns.pctToTarget])).map(r=>{
+        const hrs = n(r[cf.bcba.columns.billableHours]);
+        const tgt = n(r[cf.bcba.columns.target]);
+        const pct = n(r[cf.bcba.columns.pctToTarget]);
+        const pctDisplay = pct<=1 ? Math.round(pct*100)+'%' : Math.round(pct)+'%';
+        const pctNum = pct<=1 ? pct*100 : pct;
+        return `<tr>
+          <td><strong>${r[cf.bcba.columns.bcbaName]}</strong></td>
+          <td>${hrs.toFixed(1)}</td>
+          <td>${tgt}</td>
+          <td>${pctDisplay}</td>
+          <td>${badge(pctNum,100,85,['Met ✓','Watch','Below'])}</td>
+        </tr>`;
+      }).join('')
+    : '<tr><td colspan="5" style="color:#999;text-align:center;padding:20px">No BCBA data found for this period</td></tr>';
+
+  // BCBA trend chart
+  const bcbaNames = [...new Set((D.bcbaRows||[]).map(r=>r[cf.bcba.columns.bcbaName]).filter(Boolean))];
+  renderMultiLineChart('bcba-chart', D.bcbaRows, cf.bcba.columns.weekStart, cf.bcba.columns.billableHours, cf.bcba.columns.bcbaName, bcbaNames);
+
+  // ── INTAKE ────────────────────────────────────────────────
+  set('i-leads',   fmtN(totalLeads));
+  set('i-contact', fmtN(totalContact));
+  set('i-pct',     totalLeads ? Math.round(totalContact/totalLeads*100)+'%' : '—');
+  set('i-done',    fmtN(totalIntakes));
+  set('i-conv',    totalLeads ? Math.round(totalIntakes/totalLeads*100)+'%' : '—');
+  set('i-days',    avgDays ? avgDays.toFixed(1)+' days' : '—');
+  set('i-docs',    fmtN(totalDocs));
+  set('i-ref',     fmtN(totalRefOut));
+  renderLineChart('intake-chart', D.intakeRows, cf.intake.columns.weekStart, cf.intake.columns.newLeads, 'New Leads', '#185FA5');
+
+  // ── CASE COORDINATION ────────────────────────────────────
+  set('cc-active',   fmtN(activeCases));
+  set('cc-unstaff',  fmtN(unstaffedCases));
+  set('cc-launch',   fmtN(casesLaunched));
+  set('cc-days',     avgDaysIntake ? avgDaysIntake.toFixed(1)+' days' : '—');
+  renderLineChart('case-chart', D.caseRows, cf.caseCoord.columns.weekStart, cf.caseCoord.columns.activeCases, 'Active Cases', '#534AB7');
+
+  // ── RECRUITING ────────────────────────────────────────────
+  set('r-bcba',  fmtN(openBCBA));
+  set('r-rbt',   fmtN(openRBT));
+  set('r-apps',  fmtN(totalApps));
+  set('r-int',   fmtN(totalInts));
+  set('r-offer', fmtN(totalOff));
+  set('r-hire',  fmtN(totalHire));
+  set('r-rate',  hireRate ? (hireRate<=1?Math.round(hireRate*100):Math.round(hireRate))+'%' : '—');
+  set('r-delay', fmtN(totalDel));
+  const pipeline = [['Applications',totalApps],['Interviews',totalInts],['Offers',totalOff],['Hires',totalHire]];
+  const pipeMax  = totalApps || 1;
+  el('recruit-bars').innerHTML = pipeline.map(([l,v])=>{
+    const pct = Math.round(v/pipeMax*100);
+    return `<div class="bar-row"><div class="bar-lbl">${l}</div><div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:#185FA5">${v}</div></div><div class="bar-num">${v}</div></div>`;
+  }).join('');
+  renderLineChart('recruit-chart', D.recruitRows, cf.recruiting.columns.weekStart, cf.recruiting.columns.hires, 'Hires', '#1a7a5e');
+}
+
+// ── CHART HELPERS ──────────────────────────────────────────────
+function renderLineChart(canvasId, rows, dateCol, valCol, label, color) {
+  if (charts[canvasId]) { charts[canvasId].destroy(); }
+  if (!rows?.length) return;
+  const sorted = [...rows].sort((a,b)=>new Date(a[dateCol])-new Date(b[dateCol])).slice(-10);
+  const labels = sorted.map(r=>{ const d=new Date(r[dateCol]); return isNaN(d)?'':d.toLocaleDateString('en-US',{month:'short',day:'numeric'}); });
+  const values = sorted.map(r=>n(r[valCol]));
+  charts[canvasId] = new Chart(document.getElementById(canvasId).getContext('2d'),{
+    type:'line',
+    data:{labels,datasets:[{label,data:values,borderColor:color,backgroundColor:color+'18',tension:.4,fill:true,pointRadius:3}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{grid:{color:'rgba(0,0,0,.04)'}},x:{grid:{display:false}}}}
+  });
+}
+
+function renderMultiLineChart(canvasId, rows, dateCol, valCol, nameCol, names) {
+  if (charts[canvasId]) { charts[canvasId].destroy(); }
+  if (!rows?.length || !names.length) return;
+  const colors = ['#1a7a5e','#185FA5','#534AB7','#D85A30','#3B6D11'];
+  const allDates = [...new Set(rows.map(r=>r[dateCol]))].sort((a,b)=>new Date(a)-new Date(b)).slice(-8);
+  const labels   = allDates.map(d=>{ const dt=new Date(d); return isNaN(dt)?'':dt.toLocaleDateString('en-US',{month:'short',day:'numeric'}); });
+  const datasets = names.slice(0,5).map((name,i)=>({
+    label: name,
+    data: allDates.map(d=>{ const r=rows.find(row=>row[dateCol]===d&&row[nameCol]===name); return r?n(r[valCol]):null; }),
+    borderColor: colors[i%colors.length],
+    backgroundColor: 'transparent',
+    tension:.4, pointRadius:3, spanGaps:true,
+  }));
+  charts[canvasId] = new Chart(document.getElementById(canvasId).getContext('2d'),{
+    type:'line',
+    data:{labels,datasets},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,position:'top',labels:{boxWidth:10,font:{size:11}}}},scales:{y:{grid:{color:'rgba(0,0,0,.04)'}},x:{grid:{display:false}}}}
+  });
+}
+
+// Auto-refresh every 30 minutes
+setInterval(()=>{ if(sessionStorage.getItem('jade_token')) loadDashboard(); }, CONFIG.refreshMinutes*60*1000);
+</script>
+</body>
+</html>
