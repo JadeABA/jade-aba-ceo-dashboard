@@ -1,35 +1,64 @@
 let _token = null;
+let _msalApp = null;
 
-function signInPopup() {
-  // Redirect method — no popup needed, goes to Microsoft and comes back
-  const authUrl = new URL('https://login.microsoftonline.com/' + CONFIG.tenantId + '/oauth2/v2.0/authorize');
-  authUrl.searchParams.set('client_id',     CONFIG.clientId);
-  authUrl.searchParams.set('response_type', 'token');
-  authUrl.searchParams.set('redirect_uri',  CONFIG.redirectUri);
-  authUrl.searchParams.set('scope',         'Files.Read User.Read');
-  authUrl.searchParams.set('response_mode', 'fragment');
-  authUrl.searchParams.set('nonce',         Date.now().toString());
-  authUrl.searchParams.set('prompt',        'select_account');
-  window.location.href = authUrl.toString();
-  return new Promise(function() {});
+const MSAL_CONFIG = {
+  auth: {
+    clientId: '5a8e24ef-86dc-443d-93fc-e74b11365575',
+    authority: 'https://login.microsoftonline.com/33ee9db4-64f2-4c9f-a3c3-ae3cd287d483',
+    redirectUri: 'https://JadeABA.github.io/jade-aba-ceo-dashboard',
+    navigateToLoginRequestUrl: true,
+  },
+  cache: {
+    cacheLocation: 'sessionStorage',
+    storeAuthStateInCookie: true,
+  }
+};
+
+const SCOPES = ['Files.Read', 'User.Read'];
+
+async function getMSAL() {
+  if (_msalApp) return _msalApp;
+  _msalApp = new msal.PublicClientApplication(MSAL_CONFIG);
+  await _msalApp.initialize();
+  return _msalApp;
 }
 
-function handleLogin() {
-  // Check if Microsoft just sent us back with a token in the URL
-  const hash = window.location.hash.substring(1);
-  const params = new URLSearchParams(hash);
-  const token = params.get('access_token');
-  if (token) {
-    _token = token;
-    sessionStorage.setItem('jade_token', token);
-    window.history.replaceState(null, '', window.location.pathname);
-    return true;
+async function signInPopup() {
+  const app = await getMSAL();
+  try {
+    const result = await app.loginRedirect({ scopes: SCOPES });
+    return result ? true : false;
+  } catch(e) {
+    console.error('Login error:', e);
+    return false;
   }
-  // Check if we already have a saved token
-  const saved = sessionStorage.getItem('jade_token');
-  if (saved) {
-    _token = saved;
-    return true;
+}
+
+async function handleLogin() {
+  const app = await getMSAL();
+  try {
+    const result = await app.handleRedirectPromise();
+    if (result && result.accessToken) {
+      _token = result.accessToken;
+      sessionStorage.setItem('jade_token', _token);
+      return true;
+    }
+  } catch(e) {
+    console.error('Redirect handle error:', e);
+  }
+  const accounts = app.getAllAccounts();
+  if (accounts.length > 0) {
+    try {
+      const silentResult = await app.acquireTokenSilent({
+        scopes: SCOPES,
+        account: accounts[0]
+      });
+      _token = silentResult.accessToken;
+      sessionStorage.setItem('jade_token', _token);
+      return true;
+    } catch(e) {
+      console.log('Silent failed, need login');
+    }
   }
   return false;
 }
@@ -124,3 +153,13 @@ function n(val) {
   if (val === null || val === undefined || val === '') return 0;
   return parseFloat(String(val).replace(/[$,%]/g, '').trim()) || 0;
 }
+```
+
+Also update `index.html` — find the line that loads MSAL at the top and make sure it says exactly this. Go to `index.html` → pencil → find this line near the very top:
+```
+<script src="https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js"></script>
+```
+
+Change it to:
+```
+<script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@3.28.1/lib/msal-browser.min.js"></script>
