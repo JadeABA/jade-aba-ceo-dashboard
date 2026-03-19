@@ -1,11 +1,10 @@
 const CONFIG = {
 
-  // You will fill these in during Step 3 (Azure setup)
+  // You will fill these in during the Azure setup step
   clientId:    'PASTE_YOUR_CLIENT_ID_HERE',
   tenantId:    'PASTE_YOUR_TENANT_ID_HERE',
-  redirectUri: 'https://YOUR-GITHUB-USERNAME.github.io/jade-aba-ceo-dashboard',
+  redirectUri: 'https://JadeABA.github.io/jade-aba-ceo-dashboard',
 
-  // You will fill these in during Step 4 (getting File IDs from OneDrive)
   files: {
 
     ar: {
@@ -86,27 +85,23 @@ const CONFIG = {
     utilization: {
       fileId:    'PASTE_UTILIZATION_FILE_ID_HERE',
       sheetName: 'Weekly_Utilization_Dashboard',
-      // These are the exact cell positions in your summary dashboard tab
       cells: {
-        totalAuthorized:  'B4',
-        totalAvailable:   'B5',
-        totalScheduled:   'B6',
-        overallUtilPct:   'B7',
-        clientsUnder80:   'J5',
-        therapistsUnder70:'J6',
-        openHours:        'J7',
-        clientTableStart:  12,   // Row where client list begins
-        therapistColStart: 'F',  // Column where therapist table starts
+        totalAuthorized:   'B4',
+        totalAvailable:    'B5',
+        totalScheduled:    'B6',
+        overallUtilPct:    'B7',
+        clientsUnder80:    'J5',
+        therapistsUnder70: 'J6',
+        openHours:         'J7',
       }
     }
 
   },
 
-  // Dashboard targets — green/yellow/red thresholds
   companyName:          'Jade ABA Therapy',
   refreshMinutes:       30,
-  utilizationTarget:    85,       // % — green at or above this
-  collectionTarget:     88,       // % collection rate target
-  bcbaTarget:           100,      // % to target — green at or above
-  contactSpeedTarget:   24,       // hours to contact new leads
+  utilizationTarget:    85,
+  collectionTarget:     88,
+  bcbaTarget:           100,
+  contactSpeedTarget:   24,
 };
