@@ -1,12 +1,10 @@
 const CONFIG = {
 
-  // You will fill these in during the Azure setup step
-  clientId:    'PASTE_YOUR_CLIENT_ID_HERE',
-  tenantId:    'PASTE_YOUR_TENANT_ID_HERE',
+  clientId:    '5a8e24ef-86dc-443d-93fc-e74b11365575',
+  tenantId:    '33ee9db4-64f2-4c9f-a3c3-ae3cd287d483',
   redirectUri: 'https://JadeABA.github.io/jade-aba-ceo-dashboard',
 
   files: {
-
     ar: {
       fileId:    'PASTE_AR_FILE_ID_HERE',
       sheetName: 'Weekly AR Tracker',
@@ -20,7 +18,6 @@ const CONFIG = {
         totalAR:     'Total AR',
       }
     },
-
     bcba: {
       fileId:    'PASTE_KPI_FILE_ID_HERE',
       sheetName: 'BCBA Weekly Tracker',
@@ -32,7 +29,6 @@ const CONFIG = {
         pctToTarget:   '% to Target',
       }
     },
-
     intake: {
       fileId:    'PASTE_OPERATIONS_FILE_ID_HERE',
       sheetName: 'Intake',
@@ -50,38 +46,35 @@ const CONFIG = {
         referralFollowup: 'Referral Followups',
       }
     },
-
     recruiting: {
       fileId:    'PASTE_OPERATIONS_FILE_ID_HERE',
       sheetName: 'Recruiting',
       columns: {
-        weekStart:       'Week Start',
-        weekEnd:         'Week End',
-        openBCBA:        'Open BCBA',
-        openRBT:         'Open RBT',
-        applications:    'Applications',
-        interviews:      'Interviews',
-        offers:          'Offers',
-        hires:           'Hires',
-        hireRate:        'Hire Rate',
-        timeToFill:      'Time to Fill RBT (days)',
-        casesDelayed:    'Cases Delayed',
+        weekStart:    'Week Start',
+        weekEnd:      'Week End',
+        openBCBA:     'Open BCBA',
+        openRBT:      'Open RBT',
+        applications: 'Applications',
+        interviews:   'Interviews',
+        offers:       'Offers',
+        hires:        'Hires',
+        hireRate:     'Hire Rate',
+        timeToFill:   'Time to Fill RBT (days)',
+        casesDelayed: 'Cases Delayed',
       }
     },
-
     caseCoord: {
       fileId:    'PASTE_OPERATIONS_FILE_ID_HERE',
       sheetName: 'Case Coordination',
       columns: {
-        weekStart:       'Week Start',
-        weekEnd:         'Week End',
-        activeCases:     'Active Cases',
-        unstaffedCases:  'Unstaffed Cases',
-        casesLaunched:   'Cases Launched',
-        avgDaysIntake:   'Avg Days Intake→Assessment',
+        weekStart:      'Week Start',
+        weekEnd:        'Week End',
+        activeCases:    'Active Cases',
+        unstaffedCases: 'Unstaffed Cases',
+        casesLaunched:  'Cases Launched',
+        avgDaysIntake:  'Avg Days Intake→Assessment',
       }
     },
-
     utilization: {
       fileId:    'PASTE_UTILIZATION_FILE_ID_HERE',
       sheetName: 'Weekly_Utilization_Dashboard',
@@ -95,13 +88,12 @@ const CONFIG = {
         openHours:         'J7',
       }
     }
-
   },
 
-  companyName:          'Jade ABA Therapy',
-  refreshMinutes:       30,
-  utilizationTarget:    85,
-  collectionTarget:     88,
-  bcbaTarget:           100,
-  contactSpeedTarget:   24,
+  companyName:         'Jade ABA Therapy',
+  refreshMinutes:      30,
+  utilizationTarget:   85,
+  collectionTarget:    88,
+  bcbaTarget:          100,
+  contactSpeedTarget:  24,
 };
