@@ -6,7 +6,7 @@ const CONFIG = {
 
   files: {
     ar: {
-      fileId:    'PASTE_AR_FILE_ID_HERE',
+      fileId:    '01SYCMTOTGJJPJ5SWVBFAJ3KIW6XPT3CRH',
       sheetName: 'Weekly AR Tracker',
       columns: {
         weekStart:   'Week Start Date',
@@ -19,7 +19,7 @@ const CONFIG = {
       }
     },
     bcba: {
-      fileId:    'PASTE_KPI_FILE_ID_HERE',
+      fileId:    '01SYCMTOQC6HFL64F7FNC2QGKLFTXYAZOZ',
       sheetName: 'BCBA Weekly Tracker',
       columns: {
         weekStart:     'Week Start Date',
@@ -30,7 +30,7 @@ const CONFIG = {
       }
     },
     intake: {
-      fileId:    'PASTE_OPERATIONS_FILE_ID_HERE',
+      fileId:    '01SYCMTOSMYF3XPYHBUFCJONPOS6V5V2Z5',
       sheetName: 'Intake',
       columns: {
         weekStart:        'Week Start',
@@ -47,7 +47,7 @@ const CONFIG = {
       }
     },
     recruiting: {
-      fileId:    'PASTE_OPERATIONS_FILE_ID_HERE',
+      fileId:    '01SYCMTOSMYF3XPYHBUFCJONPOS6V5V2Z5',
       sheetName: 'Recruiting',
       columns: {
         weekStart:    'Week Start',
@@ -64,7 +64,7 @@ const CONFIG = {
       }
     },
     caseCoord: {
-      fileId:    'PASTE_OPERATIONS_FILE_ID_HERE',
+      fileId:    '01SYCMTOSMYF3XPYHBUFCJONPOS6V5V2Z5',
       sheetName: 'Case Coordination',
       columns: {
         weekStart:      'Week Start',
@@ -76,7 +76,7 @@ const CONFIG = {
       }
     },
     utilization: {
-      fileId:    'PASTE_UTILIZATION_FILE_ID_HERE',
+      fileId:    '01SYCMTOTKJVIYNS55UVBLBAH2GUICBXBO',
       sheetName: 'Weekly_Utilization_Dashboard',
       cells: {
         totalAuthorized:   'B4',
