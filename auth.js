@@ -1,21 +1,25 @@
 let _token = null;
 let _msalApp = null;
 
-// Excel stores dates as serial numbers — this converts them to real dates
-function excelDateToJS(serial) {
-  if (!serial) return null;
-  if (typeof serial === 'string' && serial.includes('.')) {
-    // Format like "1.1.2024" or "3.6.2026"
-    const parts = serial.split('.');
-    if (parts.length === 3) {
-      return new Date(parseInt(parts[2]), parseInt(parts[0])-1, parseInt(parts[1]));
-    }
+// Converts ANY date format Excel uses into a real JavaScript date
+function excelDateToJS(val) {
+  if (!val && val !== 0) return null;
+  // Excel serial number (e.g. 46081)
+  if (typeof val === 'number' && val > 40000) {
+    return new Date(Math.round((val - 25569) * 86400 * 1000));
   }
-  if (typeof serial === 'number' && serial > 40000) {
-    // Excel serial number — convert to JS date
-    return new Date(Math.round((serial - 25569) * 86400 * 1000));
+  // Dot format like "3.6.2026" (month.day.year) or "1.1.2024"
+  if (typeof val === 'string' && /^\d+\.\d+\.\d+$/.test(val.trim())) {
+    const p = val.trim().split('.');
+    return new Date(parseInt(p[2]), parseInt(p[0])-1, parseInt(p[1]));
   }
-  const d = new Date(serial);
+  // Slash format like "3/6/2026"
+  if (typeof val === 'string' && val.includes('/')) {
+    const d = new Date(val);
+    return isNaN(d) ? null : d;
+  }
+  // Try generic parse
+  const d = new Date(val);
   return isNaN(d) ? null : d;
 }
 
@@ -50,7 +54,6 @@ async function handleLogin() {
       return true;
     }
   } catch(e) { console.error('Redirect error:', e); }
-
   const accounts = app.getAllAccounts();
   if (accounts.length > 0) {
     try {
@@ -85,7 +88,7 @@ async function readSheet(fileId, sheetName) {
       headers.forEach(function(h, i) {
         obj[h] = row[i] !== undefined ? row[i] : '';
       });
-      // Store a parsed JS date for sorting/filtering
+      // Parse date from first column for sorting
       obj.__date = excelDateToJS(row[0]);
       return obj;
     });
@@ -117,56 +120,10 @@ async function loadAllData() {
     readCell(f.utilization.fileId, f.utilization.sheetName, uc.totalAvailable),
     readCell(f.utilization.fileId, f.utilization.sheetName, uc.totalScheduled),
     readCell(f.utilization.fileId, f.utilization.sheetName, uc.overallUtilPct),
-    readCell(f.utilization.fileId, f.utilization.sheetName, uc.clientsUnder80),
-    readCell(f.utilization.fileId, f.utilization.sheetName, uc.therapistsUnder70),
-    readCell(f.utilization.fileId, f.utilization.sheetName, uc.openHours),
   ]);
-  return {
-    arRows:      results[0],
-    bcbaRows:    results[1],
-    intakeRows:  results[2],
-    recruitRows: results[3],
-    caseRows:    results[4],
-    util: {
-      totalAuth:     cellResults[0],
-      totalAvail:    cellResults[1],
-      totalSched:    cellResults[2],
-      utilPct:       cellResults[3],
-      clientsLow:    cellResults[4],
-      therapistsLow: cellResults[5],
-      openHrs:       cellResults[6],
-    }
-  };
-}
-
-// Gets the most recent row — uses __date for accurate sorting
-function latestRow(rows, weekCol) {
-  if (!rows || !rows.length) return {};
-  return rows.reduce(function(best, row) {
-    const d = row.__date;
-    const bd = best.__date;
-    if (!d) return best;
-    if (!bd) return row;
-    return d > bd ? row : best;
-  }, {});
-}
-
-// Filters rows to selected date range — uses __date
-function filterRange(rows, weekCol, range) {
-  if (!rows || !rows.length) return [];
-  const now    = new Date();
-  var   cutoff = new Date(0);
-  if      (range === 'wtd') { cutoff = new Date(now); cutoff.setDate(now.getDate() - now.getDay()); }
-  else if (range === 'mtd') { cutoff = new Date(now.getFullYear(), now.getMonth(), 1); }
-  else if (range === 'qtd') { cutoff = new Date(now.getFullYear(), Math.floor(now.getMonth()/3)*3, 1); }
-  else if (range === 'ytd') { cutoff = new Date(now.getFullYear(), 0, 1); }
-  return rows.filter(function(row) {
-    const d = row.__date;
-    return d && d >= cutoff;
-  });
-}
-
-function n(val) {
-  if (val === null || val === undefined || val === '') return 0;
-  return parseFloat(String(val).replace(/[$,%]/g, '').trim()) || 0;
-}
+  // Calculate open hours directly — avail minus scheduled
+  const totalAvail = cellResults[1] || 0;
+  const totalSched = cellResults[2] || 0;
+  const openHrs = Math.round((totalAvail - totalSched) * 10) / 10;
+  // Get client/therapist alert counts from the utilization sheet directly
+  const utilSheet = await readSheet(f.utilization.fileId, f.utilizat
