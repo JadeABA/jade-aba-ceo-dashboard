@@ -126,4 +126,64 @@ async function loadAllData() {
   const totalSched = cellResults[2] || 0;
   const openHrs = Math.round((totalAvail - totalSched) * 10) / 10;
   // Get client/therapist alert counts from the utilization sheet directly
-  const utilSheet = await readSheet(f.utilization.fileId, f.utilizat
+  const utilSheet = await readSheet(f.utilization.fileId, f.utilization.sheetName);
+  let clientsLow = 0, therapistsLow = 0;
+  utilSheet.forEach(function(row) {
+    const type = String(row[''] || '').toLowerCase();
+    const util = n(row['Util %'] || row['Util%'] || row['Utilization %'] || 0);
+    if (type === 'client' && util > 0 && util < 80) clientsLow++;
+    if (type === 'therapist' && util > 0 && util < 70) therapistsLow++;
+  });
+  return {
+    arRows:      results[0],
+    bcbaRows:    results[1],
+    intakeRows:  results[2],
+    recruitRows: results[3],
+    caseRows:    results[4],
+    util: {
+      totalAuth:     cellResults[0],
+      totalAvail:    cellResults[1],
+      totalSched:    cellResults[2],
+      utilPct:       cellResults[3],
+      clientsLow:    clientsLow,
+      therapistsLow: therapistsLow,
+      openHrs:       openHrs,
+    }
+  };
+}
+
+function latestRow(rows, weekCol) {
+  if (!rows || !rows.length) return {};
+  const withDates = rows.filter(function(r) { return r.__date; });
+  if (!withDates.length) return rows[rows.length - 1] || {};
+  return withDates.reduce(function(best, row) {
+    return row.__date > best.__date ? row : best;
+  });
+}
+
+function filterRange(rows, weekCol, range) {
+  if (!rows || !rows.length) return [];
+  const now    = new Date();
+  var   cutoff = new Date(0);
+  if      (range === 'wtd') { cutoff = new Date(now); cutoff.setDate(now.getDate() - now.getDay()); }
+  else if (range === 'mtd') { cutoff = new Date(now.getFullYear(), now.getMonth(), 1); }
+  else if (range === 'qtd') { cutoff = new Date(now.getFullYear(), Math.floor(now.getMonth()/3)*3, 1); }
+  else if (range === 'ytd') { cutoff = new Date(now.getFullYear(), 0, 1); }
+  // For WTD — if no rows in range, fall back to latest week
+  const filtered = rows.filter(function(row) {
+    return row.__date && row.__date >= cutoff;
+  });
+  if (filtered.length === 0 && range === 'wtd') {
+    const latest = latestRow(rows, weekCol);
+    return latest && latest.__date ? rows.filter(function(r) {
+      return r.__date && r.__date.toDateString() === latest.__date.toDateString() ||
+             (latest.__date && Math.abs(r.__date - latest.__date) < 7*24*60*60*1000);
+    }) : [];
+  }
+  return filtered;
+}
+
+function n(val) {
+  if (val === null || val === undefined || val === '') return 0;
+  return parseFloat(String(val).replace(/[$,%]/g, '').trim()) || 0;
+}
