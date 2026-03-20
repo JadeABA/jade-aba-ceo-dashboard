@@ -5,19 +5,27 @@ const CONFIG = {
   redirectUri: 'https://JadeABA.github.io/jade-aba-ceo-dashboard',
 
   files: {
+
     ar: {
       fileId:    '01SYCMTOTGJJPJ5SWVBFAJ3KIW6XPT3CRH',
       sheetName: 'Weekly AR Tracker',
       columns: {
-        weekStart:   'Week Start Date',
-        weekEnd:     'Week End Date',
-        ar0_30:      'AR 0-30',
-        ar31_60:     'AR 31-60',
-        ar61_90:     'AR 61-90',
-        ar90plus:    'AR 90+',
-        totalAR:     'Total AR',
+        weekStart:        'Week Start Date',
+        weekEnd:          'Week End Date',
+        ar0_30:           'AR 0-30',
+        ar31_60:          'AR 31-60',
+        ar61_90:          'AR 61-90',
+        ar90plus:         'AR 90+',
+        totalAR:          'Total AR',
+        claimsSubmitted:  'Claims Submitted',
+        denialsReceived:  'Denials Received',
+        denialsPending:   'Denials Pending',
+        cleanClaimRate:   'Clean Claim Rate',
+        avgDaysPayment:   'Avg Days to Payment',
+        totalWeeklyPay:   'Total Weekly Payment',
       }
     },
+
     bcba: {
       fileId:    '01SYCMTOQC6HFL64F7FNC2QGKLFTXYAZOZ',
       sheetName: 'BCBA Weekly Tracker',
@@ -27,8 +35,10 @@ const CONFIG = {
         billableHours: 'Billable Hours',
         target:        'Target (30)',
         pctToTarget:   '% to Target',
+        activeCases:   'Active Cases',
       }
     },
+
     intake: {
       fileId:    '01SYCMTOSMYF3XPYHBUFCJONPOS6V5V2Z5',
       sheetName: 'Intake',
@@ -46,6 +56,7 @@ const CONFIG = {
         referralFollowup: 'Referral Followups',
       }
     },
+
     recruiting: {
       fileId:    '01SYCMTOSMYF3XPYHBUFCJONPOS6V5V2Z5',
       sheetName: 'Recruiting',
@@ -63,6 +74,7 @@ const CONFIG = {
         casesDelayed: 'Cases Delayed',
       }
     },
+
     caseCoord: {
       fileId:    '01SYCMTOSMYF3XPYHBUFCJONPOS6V5V2Z5',
       sheetName: 'Case Coordination',
@@ -72,9 +84,10 @@ const CONFIG = {
         activeCases:    'Active Cases',
         unstaffedCases: 'Unstaffed Cases',
         casesLaunched:  'Cases Launched',
-        avgDaysIntake:  'Avg Days Intake→Assessment',
+        avgDaysIntake:  'Avg Days Intake\u2192Assessment',
       }
     },
+
     utilization: {
       fileId:    '01SYCMTOTKJVIYNS55UVBLBAH2GUICBXBO',
       sheetName: 'Weekly_Utilization_Dashboard',
