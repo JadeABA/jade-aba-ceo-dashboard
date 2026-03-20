@@ -1,6 +1,24 @@
 let _token = null;
 let _msalApp = null;
 
+// Excel stores dates as serial numbers — this converts them to real dates
+function excelDateToJS(serial) {
+  if (!serial) return null;
+  if (typeof serial === 'string' && serial.includes('.')) {
+    // Format like "1.1.2024" or "3.6.2026"
+    const parts = serial.split('.');
+    if (parts.length === 3) {
+      return new Date(parseInt(parts[2]), parseInt(parts[0])-1, parseInt(parts[1]));
+    }
+  }
+  if (typeof serial === 'number' && serial > 40000) {
+    // Excel serial number — convert to JS date
+    return new Date(Math.round((serial - 25569) * 86400 * 1000));
+  }
+  const d = new Date(serial);
+  return isNaN(d) ? null : d;
+}
+
 async function getMSAL() {
   if (_msalApp) return _msalApp;
   _msalApp = new msal.PublicClientApplication({
@@ -10,7 +28,7 @@ async function getMSAL() {
       redirectUri: 'https://JadeABA.github.io/jade-aba-ceo-dashboard',
     },
     cache: {
-      cacheLocation:      'sessionStorage',
+      cacheLocation:          'sessionStorage',
       storeAuthStateInCookie: true,
     }
   });
@@ -31,9 +49,8 @@ async function handleLogin() {
       sessionStorage.setItem('jade_token', _token);
       return true;
     }
-  } catch(e) {
-    console.error('Redirect error:', e);
-  }
+  } catch(e) { console.error('Redirect error:', e); }
+
   const accounts = app.getAllAccounts();
   if (accounts.length > 0) {
     try {
@@ -44,16 +61,15 @@ async function handleLogin() {
       _token = silent.accessToken;
       sessionStorage.setItem('jade_token', _token);
       return true;
-    } catch(e) {
-      console.log('Silent token failed, will need login');
-    }
+    } catch(e) { console.log('Silent failed, need login'); }
   }
   return false;
 }
 
 async function readSheet(fileId, sheetName) {
   if (!_token) return [];
-  const url = 'https://graph.microsoft.com/v1.0/me/drive/items/' + fileId + '/workbook/worksheets(\'' + encodeURIComponent(sheetName) + '\')/usedRange';
+  const url = 'https://graph.microsoft.com/v1.0/me/drive/items/' + fileId +
+    '/workbook/worksheets(\'' + encodeURIComponent(sheetName) + '\')/usedRange';
   const res = await fetch(url, { headers: { Authorization: 'Bearer ' + _token } });
   if (!res.ok) { console.error('Could not read ' + sheetName, res.status); return []; }
   const data = await res.json();
@@ -61,21 +77,29 @@ async function readSheet(fileId, sheetName) {
   if (rows.length < 2) return [];
   const headers = rows[0].map(function(h) { return String(h).trim(); });
   return rows.slice(1)
-    .filter(function(row) { return row.some(function(cell) { return cell !== '' && cell !== null; }); })
+    .filter(function(row) {
+      return row.some(function(cell) { return cell !== '' && cell !== null; });
+    })
     .map(function(row) {
       const obj = {};
-      headers.forEach(function(h, i) { obj[h] = row[i] !== undefined ? row[i] : ''; });
+      headers.forEach(function(h, i) {
+        obj[h] = row[i] !== undefined ? row[i] : '';
+      });
+      // Store a parsed JS date for sorting/filtering
+      obj.__date = excelDateToJS(row[0]);
       return obj;
     });
 }
 
 async function readCell(fileId, sheetName, cellAddress) {
   if (!_token) return null;
-  const url = 'https://graph.microsoft.com/v1.0/me/drive/items/' + fileId + '/workbook/worksheets(\'' + encodeURIComponent(sheetName) + '\')/range(address=\'' + cellAddress + '\')';
+  const url = 'https://graph.microsoft.com/v1.0/me/drive/items/' + fileId +
+    '/workbook/worksheets(\'' + encodeURIComponent(sheetName) + '\')/range(address=\'' + cellAddress + '\')';
   const res = await fetch(url, { headers: { Authorization: 'Bearer ' + _token } });
   if (!res.ok) return null;
   const data = await res.json();
-  return data.values && data.values[0] && data.values[0][0] !== undefined ? data.values[0][0] : null;
+  return data.values && data.values[0] && data.values[0][0] !== undefined
+    ? data.values[0][0] : null;
 }
 
 async function loadAllData() {
@@ -115,25 +139,30 @@ async function loadAllData() {
   };
 }
 
+// Gets the most recent row — uses __date for accurate sorting
 function latestRow(rows, weekCol) {
   if (!rows || !rows.length) return {};
   return rows.reduce(function(best, row) {
-    const d = new Date(row[weekCol]);
-    return !isNaN(d) && d > new Date(best[weekCol] || 0) ? row : best;
+    const d = row.__date;
+    const bd = best.__date;
+    if (!d) return best;
+    if (!bd) return row;
+    return d > bd ? row : best;
   }, {});
 }
 
+// Filters rows to selected date range — uses __date
 function filterRange(rows, weekCol, range) {
   if (!rows || !rows.length) return [];
-  const now = new Date();
-  var cutoff = new Date(0);
+  const now    = new Date();
+  var   cutoff = new Date(0);
   if      (range === 'wtd') { cutoff = new Date(now); cutoff.setDate(now.getDate() - now.getDay()); }
   else if (range === 'mtd') { cutoff = new Date(now.getFullYear(), now.getMonth(), 1); }
   else if (range === 'qtd') { cutoff = new Date(now.getFullYear(), Math.floor(now.getMonth()/3)*3, 1); }
   else if (range === 'ytd') { cutoff = new Date(now.getFullYear(), 0, 1); }
   return rows.filter(function(row) {
-    const d = new Date(row[weekCol]);
-    return !isNaN(d) && d >= cutoff;
+    const d = row.__date;
+    return d && d >= cutoff;
   });
 }
 
