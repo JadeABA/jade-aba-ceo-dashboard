@@ -1,26 +1,30 @@
 let _token = null;
 let _msalApp = null;
 
-// Converts ANY date format Excel uses into a real JavaScript date
 function excelDateToJS(val) {
   if (!val && val !== 0) return null;
-  // Excel serial number (e.g. 46081)
   if (typeof val === 'number' && val > 40000) {
     return new Date(Math.round((val - 25569) * 86400 * 1000));
   }
-  // Dot format like "3.6.2026" (month.day.year) or "1.1.2024"
   if (typeof val === 'string' && /^\d+\.\d+\.\d+$/.test(val.trim())) {
     const p = val.trim().split('.');
     return new Date(parseInt(p[2]), parseInt(p[0])-1, parseInt(p[1]));
   }
-  // Slash format like "3/6/2026"
-  if (typeof val === 'string' && val.includes('/')) {
+  if (typeof val === 'string' && (val.includes('/') || val.includes('-'))) {
     const d = new Date(val);
     return isNaN(d) ? null : d;
   }
-  // Try generic parse
-  const d = new Date(val);
-  return isNaN(d) ? null : d;
+  return null;
+}
+
+function pctToNumber(val) {
+  if (val === null || val === undefined || val === '') return 0;
+  const str = String(val).trim();
+  if (str.endsWith('%')) return parseFloat(str) || 0;
+  const num = parseFloat(str);
+  if (isNaN(num)) return 0;
+  if (num > 0 && num <= 2) return Math.round(num * 100);
+  return Math.round(num);
 }
 
 async function getMSAL() {
@@ -88,7 +92,6 @@ async function readSheet(fileId, sheetName) {
       headers.forEach(function(h, i) {
         obj[h] = row[i] !== undefined ? row[i] : '';
       });
-      // Parse date from first column for sorting
       obj.__date = excelDateToJS(row[0]);
       return obj;
     });
@@ -105,6 +108,16 @@ async function readCell(fileId, sheetName, cellAddress) {
     ? data.values[0][0] : null;
 }
 
+async function readRange(fileId, sheetName, rangeAddress) {
+  if (!_token) return [];
+  const url = 'https://graph.microsoft.com/v1.0/me/drive/items/' + fileId +
+    '/workbook/worksheets(\'' + encodeURIComponent(sheetName) + '\')/range(address=\'' + rangeAddress + '\')';
+  const res = await fetch(url, { headers: { Authorization: 'Bearer ' + _token } });
+  if (!res.ok) return [];
+  const data = await res.json();
+  return data.values || [];
+}
+
 async function loadAllData() {
   const f = CONFIG.files;
   const results = await Promise.all([
@@ -114,6 +127,7 @@ async function loadAllData() {
     readSheet(f.recruiting.fileId, f.recruiting.sheetName),
     readSheet(f.caseCoord.fileId,  f.caseCoord.sheetName),
   ]);
+
   const uc = f.utilization.cells;
   const cellResults = await Promise.all([
     readCell(f.utilization.fileId, f.utilization.sheetName, uc.totalAuthorized),
@@ -121,19 +135,40 @@ async function loadAllData() {
     readCell(f.utilization.fileId, f.utilization.sheetName, uc.totalScheduled),
     readCell(f.utilization.fileId, f.utilization.sheetName, uc.overallUtilPct),
   ]);
-  // Calculate open hours directly — avail minus scheduled
-  const totalAvail = cellResults[1] || 0;
-  const totalSched = cellResults[2] || 0;
-  const openHrs = Math.round((totalAvail - totalSched) * 10) / 10;
-  // Get client/therapist alert counts from the utilization sheet directly
-  const utilSheet = await readSheet(f.utilization.fileId, f.utilization.sheetName);
-  let clientsLow = 0, therapistsLow = 0;
-  utilSheet.forEach(function(row) {
-    const type = String(row[''] || '').toLowerCase();
-    const util = n(row['Util %'] || row['Util%'] || row['Utilization %'] || 0);
-    if (type === 'client' && util > 0 && util < 80) clientsLow++;
-    if (type === 'therapist' && util > 0 && util < 70) therapistsLow++;
+
+  const totalAvail = n(cellResults[1]);
+  const totalSched = n(cellResults[2]);
+  const openHrs    = Math.round((totalAvail - totalSched) * 10) / 10;
+
+  // Read client utilization table directly — rows 12 to 41 (first 30 clients)
+  // Columns: A=Client, B=Available, C=Scheduled, D=Util%
+  const clientRows = await readRange(f.utilization.fileId, f.utilization.sheetName, 'A12:D41');
+  const therapistRows = await readRange(f.utilization.fileId, f.utilization.sheetName, 'F12:I31');
+
+  let clientsLow = 0;
+  let clientsTotal = 0;
+  clientRows.forEach(function(row) {
+    const name = row[0];
+    const util = n(row[3]);
+    if (name && String(name).trim() !== '') {
+      clientsTotal++;
+      const utilPct = util <= 1 ? util * 100 : util;
+      if (utilPct < 80) clientsLow++;
+    }
   });
+
+  let therapistsLow = 0;
+  let therapistsTotal = 0;
+  therapistRows.forEach(function(row) {
+    const name = row[0];
+    const util = n(row[3]);
+    if (name && String(name).trim() !== '') {
+      therapistsTotal++;
+      const utilPct = util <= 1 ? util * 100 : util;
+      if (utilPct < 70) therapistsLow++;
+    }
+  });
+
   return {
     arRows:      results[0],
     bcbaRows:    results[1],
@@ -141,13 +176,15 @@ async function loadAllData() {
     recruitRows: results[3],
     caseRows:    results[4],
     util: {
-      totalAuth:     cellResults[0],
-      totalAvail:    cellResults[1],
-      totalSched:    cellResults[2],
-      utilPct:       cellResults[3],
-      clientsLow:    clientsLow,
-      therapistsLow: therapistsLow,
-      openHrs:       openHrs,
+      totalAuth:      cellResults[0],
+      totalAvail:     cellResults[1],
+      totalSched:     cellResults[2],
+      utilPct:        cellResults[3],
+      clientsLow:     clientsLow,
+      clientsTotal:   clientsTotal,
+      therapistsLow:  therapistsLow,
+      therapistsTotal:therapistsTotal,
+      openHrs:        openHrs,
     }
   };
 }
@@ -169,16 +206,16 @@ function filterRange(rows, weekCol, range) {
   else if (range === 'mtd') { cutoff = new Date(now.getFullYear(), now.getMonth(), 1); }
   else if (range === 'qtd') { cutoff = new Date(now.getFullYear(), Math.floor(now.getMonth()/3)*3, 1); }
   else if (range === 'ytd') { cutoff = new Date(now.getFullYear(), 0, 1); }
-  // For WTD — if no rows in range, fall back to latest week
   const filtered = rows.filter(function(row) {
     return row.__date && row.__date >= cutoff;
   });
-  if (filtered.length === 0 && range === 'wtd') {
+  if (filtered.length === 0) {
     const latest = latestRow(rows, weekCol);
-    return latest && latest.__date ? rows.filter(function(r) {
-      return r.__date && r.__date.toDateString() === latest.__date.toDateString() ||
-             (latest.__date && Math.abs(r.__date - latest.__date) < 7*24*60*60*1000);
-    }) : [];
+    if (!latest || !latest.__date) return rows.slice(-5);
+    const latestTime = latest.__date.getTime();
+    return rows.filter(function(r) {
+      return r.__date && Math.abs(r.__date.getTime() - latestTime) < 8*24*60*60*1000;
+    });
   }
   return filtered;
 }
