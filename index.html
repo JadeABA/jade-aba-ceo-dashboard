@@ -40,11 +40,20 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .nb.active{background:var(--jade);color:#fff;border-color:var(--jade)}
 .content{padding:16px 20px}
 .sec{display:none}.sec.active{display:block}
-.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:16px}
+/* KPI cards with trend */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:10px;margin-bottom:16px}
 .kpi{background:#fff;border-radius:10px;padding:14px 16px;border:1px solid #e9ebee}
 .kpi-lbl{font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px}
-.kpi-val{font-size:26px;font-weight:700;color:#111;line-height:1}
-.kpi-sub{font-size:11px;margin-top:5px}
+.kpi-val{font-size:24px;font-weight:700;color:#111;line-height:1}
+.kpi-sub{font-size:11px;margin-top:4px}
+.kpi-trends{margin-top:8px;padding-top:8px;border-top:1px solid #f0f0f0;display:flex;flex-direction:column;gap:3px}
+.trend-row{display:flex;align-items:center;gap:5px;font-size:11px}
+.trend-lbl{color:#aaa;min-width:30px}
+.trend-up-good{color:#166534;font-weight:500}
+.trend-dn-good{color:#166534;font-weight:500}
+.trend-up-bad{color:#991b1b;font-weight:500}
+.trend-dn-bad{color:#991b1b;font-weight:500}
+.trend-flat{color:#888}
 .good{color:#166534}.warn{color:#92400e}.bad{color:#991b1b}.muted{color:#999}
 .card{background:#fff;border:1px solid #e9ebee;border-radius:12px;padding:18px;margin-bottom:14px}
 .card h3{font-size:13px;font-weight:600;margin-bottom:14px;color:#333}
@@ -81,11 +90,7 @@ tr:hover td{background:#fafafa}
 .bar-track{flex:1;height:20px;background:#f0f2f5;border-radius:5px;overflow:hidden}
 .bar-fill{height:100%;border-radius:5px;display:flex;align-items:center;padding-left:8px;font-size:11px;color:#fff;font-weight:600;min-width:30px;transition:width .5s}
 .bar-num{font-size:12px;color:#888;width:45px;text-align:right;flex-shrink:0}
-.util-summary{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap}
-.util-box{flex:1;min-width:120px;background:#f9fafb;border-radius:9px;padding:12px;text-align:center;border:1px solid #f0f0f0}
-.util-box .num{font-size:22px;font-weight:700}
-.util-box .lbl{font-size:11px;color:#888;margin-top:3px}
-@media(max-width:640px){.two-col,.hgrid{grid-template-columns:1fr}.kpi-val{font-size:22px}.content{padding:12px}}
+@media(max-width:640px){.two-col,.hgrid{grid-template-columns:1fr}.kpi-val{font-size:20px}.content{padding:12px}}
 </style>
 </head>
 <body>
@@ -125,38 +130,33 @@ tr:hover td{background:#fafafa}
 
   <div class="date-bar">
     <label>Showing:</label>
-    <button class="df active" data-r="wtd"  onclick="setRange(this)">Week to Date</button>
-    <button class="df"        data-r="mtd"  onclick="setRange(this)">Month to Date</button>
-    <button class="df"        data-r="qtd"  onclick="setRange(this)">Quarter to Date</button>
-    <button class="df"        data-r="ytd"  onclick="setRange(this)">Year to Date</button>
+    <button class="df active" data-r="wtd" onclick="setRange(this)">Week to Date</button>
+    <button class="df" data-r="mtd" onclick="setRange(this)">Month to Date</button>
+    <button class="df" data-r="qtd" onclick="setRange(this)">Quarter to Date</button>
+    <button class="df" data-r="ytd" onclick="setRange(this)">Year to Date</button>
   </div>
 
   <div class="nav">
     <button class="nb active" onclick="show('overview',this)">Overview</button>
-    <button class="nb"        onclick="show('ar',this)">AR &amp; Collections</button>
-    <button class="nb"        onclick="show('util',this)">Utilization</button>
-    <button class="nb"        onclick="show('bcba',this)">BCBA Billable</button>
-    <button class="nb"        onclick="show('intake',this)">Client Intake</button>
-    <button class="nb"        onclick="show('cases',this)">Case Coordination</button>
-    <button class="nb"        onclick="show('recruit',this)">Recruiting</button>
+    <button class="nb" onclick="show('ar',this)">AR &amp; Collections</button>
+    <button class="nb" onclick="show('util',this)">Utilization</button>
+    <button class="nb" onclick="show('bcba',this)">BCBA Billable</button>
+    <button class="nb" onclick="show('intake',this)">Client Intake</button>
+    <button class="nb" onclick="show('cases',this)">Case Coordination</button>
+    <button class="nb" onclick="show('recruit',this)">Recruiting</button>
   </div>
 
   <div class="content">
 
+    <!-- OVERVIEW -->
     <div class="sec active" id="s-overview">
-      <div class="kpis">
-        <div class="kpi"><div class="kpi-lbl">Total AR</div><div class="kpi-val" id="ov-ar">—</div><div class="kpi-sub muted">Outstanding balance</div></div>
-        <div class="kpi"><div class="kpi-lbl">Utilization</div><div class="kpi-val" id="ov-util">—</div><div class="kpi-sub" id="ov-util-sub"></div></div>
-        <div class="kpi"><div class="kpi-lbl">New Leads</div><div class="kpi-val" id="ov-leads">—</div><div class="kpi-sub muted">This period</div></div>
-        <div class="kpi"><div class="kpi-lbl">Open Positions</div><div class="kpi-val" id="ov-open">—</div><div class="kpi-sub muted">BCBA + RBT</div></div>
-        <div class="kpi"><div class="kpi-lbl">Cases Delayed</div><div class="kpi-val" id="ov-delayed">—</div><div class="kpi-sub muted">Due to staffing</div></div>
-        <div class="kpi"><div class="kpi-lbl">Active Cases</div><div class="kpi-val" id="ov-cases">—</div><div class="kpi-sub muted">Case coordination</div></div>
-      </div>
+      <div class="kpis" id="overview-kpis"></div>
       <div class="card"><h3>Company Health — Quick View</h3><div class="hgrid" id="health-grid"></div></div>
       <div class="card"><h3>AR Aging Snapshot</h3><div class="aging" id="ov-aging"></div></div>
       <div class="card"><h3>Intake Funnel — This Period</h3><div id="ov-funnel"></div></div>
     </div>
 
+    <!-- AR -->
     <div class="sec" id="s-ar">
       <div class="kpis">
         <div class="kpi"><div class="kpi-lbl">Total AR</div><div class="kpi-val" id="ar-total">—</div></div>
@@ -165,14 +165,11 @@ tr:hover td{background:#fafafa}
         <div class="kpi"><div class="kpi-lbl">AR 61–90 Days</div><div class="kpi-val" id="ar-61">—</div><div class="kpi-sub warn">Needs follow-up</div></div>
         <div class="kpi"><div class="kpi-lbl">AR 90+ Days</div><div class="kpi-val" id="ar-90">—</div><div class="kpi-sub bad">Urgent</div></div>
       </div>
-      <div class="card">
-        <h3>Aging Buckets</h3>
-        <div class="aging" id="ar-aging"></div>
-        <p style="font-size:12px;color:#999;margin-top:8px">Target: 0–30 days should be &gt;70% of total AR. Anything in 90+ needs immediate action.</p>
-      </div>
+      <div class="card"><h3>Aging Buckets</h3><div class="aging" id="ar-aging"></div><p style="font-size:12px;color:#999;margin-top:8px">Target: 0–30 days should be &gt;70% of total AR. Anything in 90+ needs immediate action.</p></div>
       <div class="card"><h3>AR Trend — Weekly</h3><div style="position:relative;height:220px"><canvas id="ar-chart"></canvas></div></div>
     </div>
 
+    <!-- UTILIZATION -->
     <div class="sec" id="s-util">
       <div class="kpis">
         <div class="kpi"><div class="kpi-lbl">Overall Utilization</div><div class="kpi-val" id="u-pct">—</div><div class="kpi-sub" id="u-pct-sub"></div></div>
@@ -201,6 +198,7 @@ tr:hover td{background:#fafafa}
       </div>
     </div>
 
+    <!-- BCBA -->
     <div class="sec" id="s-bcba">
       <div class="kpis">
         <div class="kpi"><div class="kpi-lbl">BCBAs Tracked</div><div class="kpi-val" id="b-total">—</div></div>
@@ -210,14 +208,13 @@ tr:hover td{background:#fafafa}
       </div>
       <div class="card">
         <h3>BCBA Billable Hours — Most Recent Week</h3>
-        <table>
-          <thead><tr><th>BCBA Name</th><th>Billable Hrs</th><th>Target</th><th>% to Target</th><th>Status</th></tr></thead>
-          <tbody id="bcba-tbody"></tbody>
-        </table>
+        <table><thead><tr><th>BCBA Name</th><th>Billable Hrs</th><th>Target</th><th>% to Target</th><th>Status</th></tr></thead>
+        <tbody id="bcba-tbody"></tbody></table>
       </div>
       <div class="card"><h3>Billable Hours Trend</h3><div style="position:relative;height:220px"><canvas id="bcba-chart"></canvas></div></div>
     </div>
 
+    <!-- INTAKE -->
     <div class="sec" id="s-intake">
       <div class="kpis">
         <div class="kpi"><div class="kpi-lbl">New Leads</div><div class="kpi-val" id="i-leads">—</div></div>
@@ -233,6 +230,7 @@ tr:hover td{background:#fafafa}
       <div class="card"><h3>Weekly Trend — New Leads vs Intakes</h3><div style="position:relative;height:220px"><canvas id="intake-chart"></canvas></div></div>
     </div>
 
+    <!-- CASES -->
     <div class="sec" id="s-cases">
       <div class="kpis">
         <div class="kpi"><div class="kpi-lbl">Active Cases</div><div class="kpi-val" id="cc-active">—</div></div>
@@ -243,6 +241,7 @@ tr:hover td{background:#fafafa}
       <div class="card"><h3>Case Coordination — Weekly Trend</h3><div style="position:relative;height:220px"><canvas id="case-chart"></canvas></div></div>
     </div>
 
+    <!-- RECRUITING -->
     <div class="sec" id="s-recruit">
       <div class="kpis">
         <div class="kpi"><div class="kpi-lbl">Open BCBA Spots</div><div class="kpi-val bad" id="r-bcba">—</div></div>
@@ -272,7 +271,7 @@ window.addEventListener('load',async function(){
     if(loggedIn){showApp();await loadDashboard();}
     else{document.getElementById('loading').style.display='none';}
   }catch(e){
-    console.error('Startup error:',e);
+    console.error('Startup:',e);
     document.getElementById('loading').style.display='none';
   }
 });
@@ -282,7 +281,7 @@ async function doSignIn(){
   document.getElementById('loading-msg').textContent='Taking you to Microsoft to sign in...';
   try{await signInPopup();}
   catch(e){
-    console.error('Sign in error:',e);
+    console.error('Sign in:',e);
     document.getElementById('loading').style.display='none';
     alert('Sign in failed: '+e.message);
   }
@@ -302,7 +301,7 @@ async function loadDashboard(){
     renderAll();
     document.getElementById('last-sync').textContent='Last synced: '+new Date().toLocaleString('en-US',{weekday:'short',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});
   }catch(e){
-    console.error('Data error:',e);
+    console.error('Data:',e);
     alert('Could not load data: '+e.message);
   }
   document.getElementById('loading').style.display='none';
@@ -322,7 +321,7 @@ function setRange(btn){
   renderAll();
 }
 
-function fmt(v){if(!v&&v!==0)return'—';if(v>=1000000)return'$'+(v/1000000).toFixed(1)+'M';if(v>=1000)return'$'+(v/1000).toFixed(0)+'K';return'$'+Math.round(v);}
+function fmt(v){if(!v&&v!==0)return'—';if(Math.abs(v)>=1000000)return'$'+(v/1000000).toFixed(1)+'M';if(Math.abs(v)>=1000)return'$'+(v/1000).toFixed(0)+'K';return'$'+Math.round(v);}
 function fmtN(v){return(v===0||v)?Math.round(v):'—';}
 function el(id){return document.getElementById(id);}
 function set(id,val){var e=el(id);if(e)e.textContent=val;}
@@ -331,20 +330,133 @@ function badge(v,ok,warn,labels){
   var cls=v>=ok?'bg':v>=warn?'ba':'br';
   return'<span class="badge '+cls+'">'+(v>=ok?labels[0]:v>=warn?labels[1]:labels[2])+'</span>';
 }
-function fmtDate(d){
-  if(!d)return'';
-  return d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+function fmtDate(d){if(!d)return'';return d.toLocaleDateString('en-US',{month:'short',day:'numeric'});}
+
+// ── TREND HELPERS ─────────────────────────────────────────────
+// Get Nth most recent row from a dataset
+function nthLatest(rows, n) {
+  if(!rows||!rows.length) return {};
+  var withDates = rows.filter(function(r){return r.__date;});
+  if(!withDates.length) return {};
+  var sorted = withDates.slice().sort(function(a,b){return b.__date-a.__date;});
+  return sorted[n] || {};
 }
 
+// Get rows from approximately N weeks ago (within a 3-day window)
+function rowFromWeeksAgo(rows, weeksAgo) {
+  if(!rows||!rows.length) return {};
+  var latest = nthLatest(rows, 0);
+  if(!latest.__date) return {};
+  var target = new Date(latest.__date.getTime() - weeksAgo*7*24*60*60*1000);
+  var best = null, bestDiff = Infinity;
+  rows.forEach(function(r){
+    if(!r.__date) return;
+    var diff = Math.abs(r.__date.getTime() - target.getTime());
+    if(diff < bestDiff && diff < 10*24*60*60*1000) { bestDiff=diff; best=r; }
+  });
+  return best || {};
+}
+
+// Get rows from approximately N months ago
+function rowFromMonthsAgo(rows, monthsAgo) {
+  if(!rows||!rows.length) return {};
+  var latest = nthLatest(rows, 0);
+  if(!latest.__date) return {};
+  var target = new Date(latest.__date);
+  target.setMonth(target.getMonth() - monthsAgo);
+  var best = null, bestDiff = Infinity;
+  rows.forEach(function(r){
+    if(!r.__date) return;
+    var diff = Math.abs(r.__date.getTime() - target.getTime());
+    if(diff < bestDiff && diff < 21*24*60*60*1000) { bestDiff=diff; best=r; }
+  });
+  return best || {};
+}
+
+// Build trend HTML — upGood=true means higher is better (utilization)
+// upGood=false means lower is better (AR, open positions, cases delayed)
+function trendHTML(current, wow, mom, fmt, upGood) {
+  var html = '<div class="kpi-trends">';
+  function row(label, prev, cur, ug) {
+    if(!prev && prev!==0) return '';
+    var diff = cur - prev;
+    if(diff===0) return '<div class="trend-row"><span class="trend-lbl">'+label+'</span><span class="trend-flat">→ No change</span></div>';
+    var up = diff > 0;
+    var good = ug ? up : !up;
+    var cls = good ? (up?'trend-up-good':'trend-dn-good') : (up?'trend-up-bad':'trend-dn-bad');
+    var arrow = up ? '↑' : '↓';
+    var display = fmt(Math.abs(diff));
+    return '<div class="trend-row"><span class="trend-lbl">'+label+'</span><span class="'+cls+'">'+arrow+' '+display+'</span></div>';
+  }
+  html += row('WoW', wow, current, upGood);
+  html += row('MoM', mom, current, upGood);
+  html += '</div>';
+  return html;
+}
+
+function trendPctHTML(current, wow, mom, upGood) {
+  var html = '<div class="kpi-trends">';
+  function row(label, prev, cur, ug) {
+    if(!prev && prev!==0) return '';
+    var diff = Math.round(cur - prev);
+    if(diff===0) return '<div class="trend-row"><span class="trend-lbl">'+label+'</span><span class="trend-flat">→ No change</span></div>';
+    var up = diff > 0;
+    var good = ug ? up : !up;
+    var cls = good ? (up?'trend-up-good':'trend-dn-good') : (up?'trend-up-bad':'trend-dn-bad');
+    var arrow = up ? '↑' : '↓';
+    return '<div class="trend-row"><span class="trend-lbl">'+label+'</span><span class="'+cls+'">'+arrow+' '+Math.abs(diff)+'%</span></div>';
+  }
+  html += row('WoW', wow, current, upGood);
+  html += row('MoM', mom, current, upGood);
+  html += '</div>';
+  return html;
+}
+
+function trendNumHTML(current, wow, mom, upGood, unit) {
+  unit = unit||'';
+  var html = '<div class="kpi-trends">';
+  function row(label, prev, cur, ug) {
+    if(prev===null||prev===undefined||prev==='') return '';
+    prev = n(prev); cur = n(cur);
+    var diff = Math.round(cur - prev);
+    if(diff===0) return '<div class="trend-row"><span class="trend-lbl">'+label+'</span><span class="trend-flat">→ No change</span></div>';
+    var up = diff > 0;
+    var good = ug ? up : !up;
+    var cls = good ? (up?'trend-up-good':'trend-dn-good') : (up?'trend-up-bad':'trend-dn-bad');
+    var arrow = up ? '↑' : '↓';
+    return '<div class="trend-row"><span class="trend-lbl">'+label+'</span><span class="'+cls+'">'+arrow+' '+Math.abs(diff)+unit+'</span></div>';
+  }
+  html += row('WoW', wow, current, upGood);
+  html += row('MoM', mom, current, upGood);
+  html += '</div>';
+  return html;
+}
+
+// ── RENDER ALL ─────────────────────────────────────────────────
 function renderAll(){
   var cf=CONFIG.files;
-  var arL=latestRow(D.arRows||[],cf.ar.columns.weekStart);
-  var ccL=latestRow(D.caseRows||[],cf.caseCoord.columns.weekStart);
-  var reL=latestRow(D.recruitRows||[],cf.recruiting.columns.weekStart);
-  var inF=filterRange(D.intakeRows||[],cf.intake.columns.weekStart,range);
-  var reF=filterRange(D.recruitRows||[],cf.recruiting.columns.weekStart,range);
 
-  // BCBA — get latest entry per person
+  // Latest and comparison rows
+  var arNow  = nthLatest(D.arRows||[], 0);
+  var arWow  = rowFromWeeksAgo(D.arRows||[], 1);
+  var arMom  = rowFromMonthsAgo(D.arRows||[], 1);
+
+  var ccNow  = nthLatest(D.caseRows||[], 0);
+  var ccWow  = rowFromWeeksAgo(D.caseRows||[], 1);
+  var ccMom  = rowFromMonthsAgo(D.caseRows||[], 1);
+
+  var reNow  = nthLatest(D.recruitRows||[], 0);
+  var reWow  = rowFromWeeksAgo(D.recruitRows||[], 1);
+  var reMom  = rowFromMonthsAgo(D.recruitRows||[], 1);
+
+  var inF    = filterRange(D.intakeRows||[], cf.intake.columns.weekStart, range);
+  var inWowF = filterRange(D.intakeRows||[], cf.intake.columns.weekStart, 'wtd');
+  var inPrevWeek = rowFromWeeksAgo(D.intakeRows||[], 1);
+  var inPrevMon  = rowFromMonthsAgo(D.intakeRows||[], 1);
+
+  var reF   = filterRange(D.recruitRows||[], cf.recruiting.columns.weekStart, range);
+
+  // BCBA latest per person
   var bbn={};
   (D.bcbaRows||[]).forEach(function(r){
     var nm=r[cf.bcba.columns.bcbaName];
@@ -353,64 +465,122 @@ function renderAll(){
   });
   var bbl=Object.values(bbn);
 
-  // AR values
-  var tAR=n(arL[cf.ar.columns.totalAR]);
-  var a0=n(arL[cf.ar.columns.ar0_30]);
-  var a31=n(arL[cf.ar.columns.ar31_60]);
-  var a61=n(arL[cf.ar.columns.ar61_90]);
-  var a90=n(arL[cf.ar.columns.ar90plus]);
+  // Current values
+  var tAR   = n(arNow[cf.ar.columns.totalAR]);
+  var a0    = n(arNow[cf.ar.columns.ar0_30]);
+  var a31   = n(arNow[cf.ar.columns.ar31_60]);
+  var a61   = n(arNow[cf.ar.columns.ar61_90]);
+  var a90   = n(arNow[cf.ar.columns.ar90plus]);
+  var ut    = D.util||{};
+  var rawU  = n(ut.utilPct);
+  var up    = rawU>0&&rawU<=1?Math.round(rawU*100):Math.round(rawU);
+  var cLow  = ut.clientsLow||0;
+  var cTot  = ut.clientsTotal||0;
+  var tLow  = ut.therapistsLow||0;
+  var tTot  = ut.therapistsTotal||0;
+  var tL    = inF.reduce(function(s,r){return s+n(r[cf.intake.columns.newLeads]);},0);
+  var tC    = inF.reduce(function(s,r){return s+n(r[cf.intake.columns.contacted24h]);},0);
+  var tI    = inF.reduce(function(s,r){return s+n(r[cf.intake.columns.intakesCompleted]);},0);
+  var tD    = inF.reduce(function(s,r){return s+n(r[cf.intake.columns.pendingDocs]);},0);
+  var tR    = inF.reduce(function(s,r){return s+n(r[cf.intake.columns.referralOutreach]);},0);
+  var aD    = inF.length?inF.reduce(function(s,r){return s+n(r[cf.intake.columns.avgDaysToIntake]);},0)/inF.length:0;
+  var oBCBA = n(reNow[cf.recruiting.columns.openBCBA]);
+  var oRBT  = n(reNow[cf.recruiting.columns.openRBT]);
+  var tAp   = reF.reduce(function(s,r){return s+n(r[cf.recruiting.columns.applications]);},0);
+  var tIn   = reF.reduce(function(s,r){return s+n(r[cf.recruiting.columns.interviews]);},0);
+  var tOf   = reF.reduce(function(s,r){return s+n(r[cf.recruiting.columns.offers]);},0);
+  var tHi   = reF.reduce(function(s,r){return s+n(r[cf.recruiting.columns.hires]);},0);
+  var tDl   = reF.reduce(function(s,r){return s+n(r[cf.recruiting.columns.casesDelayed]);},0);
+  var hR    = n(reNow[cf.recruiting.columns.hireRate]);
+  var aC    = n(ccNow[cf.caseCoord.columns.activeCases]);
+  var uC    = n(ccNow[cf.caseCoord.columns.unstaffedCases]);
+  var cLaunch = n(ccNow[cf.caseCoord.columns.casesLaunched]);
+  var aCC   = n(ccNow[cf.caseCoord.columns.avgDaysIntake]);
+  var bT    = bbl.length;
+  var bM    = bbl.filter(function(r){return pctToNumber(r[cf.bcba.columns.pctToTarget])>=100;}).length;
+  var bA    = bT?bbl.reduce(function(s,r){return s+n(r[cf.bcba.columns.billableHours]);},0)/bT:0;
 
-  // Utilization
-  var ut=D.util||{};
-  var rawUtil=n(ut.utilPct);
-  var up=rawUtil>0&&rawUtil<=1?Math.round(rawUtil*100):Math.round(rawUtil);
-  var cLow=ut.clientsLow||0;
-  var cTot=ut.clientsTotal||0;
-  var tLow=ut.therapistsLow||0;
-  var tTot=ut.therapistsTotal||0;
+  // Comparison values for trends
+  var arWowVal  = n(arWow[cf.ar.columns.totalAR]);
+  var arMomVal  = n(arMom[cf.ar.columns.totalAR]);
+  var openPosNow = oBCBA+oRBT;
+  var openPosWow = n(reWow[cf.recruiting.columns.openBCBA])+n(reWow[cf.recruiting.columns.openRBT]);
+  var openPosMom = n(reMom[cf.recruiting.columns.openBCBA])+n(reMom[cf.recruiting.columns.openRBT]);
+  var delayWow  = n(reWow[cf.recruiting.columns.casesDelayed]);
+  var delayMom  = n(reMom[cf.recruiting.columns.casesDelayed]);
+  var activeWow = n(ccWow[cf.caseCoord.columns.activeCases]);
+  var activeMom = n(ccMom[cf.caseCoord.columns.activeCases]);
+  var unstaffWow= n(ccWow[cf.caseCoord.columns.unstaffedCases]);
+  var unstaffMom= n(ccMom[cf.caseCoord.columns.unstaffedCases]);
+  var leadsWow  = n(inPrevWeek[cf.intake.columns.newLeads]);
+  var leadsMom  = n(inPrevMon[cf.intake.columns.newLeads]);
+  var convWow   = n(inPrevWeek[cf.intake.columns.conversionPct]);
+  var convMom   = n(inPrevMon[cf.intake.columns.conversionPct]);
+  var convNow   = tL ? Math.round(tI/tL*100) : 0;
 
-  // Intake
-  var tL=inF.reduce(function(s,r){return s+n(r[cf.intake.columns.newLeads]);},0);
-  var tC=inF.reduce(function(s,r){return s+n(r[cf.intake.columns.contacted24h]);},0);
-  var tI=inF.reduce(function(s,r){return s+n(r[cf.intake.columns.intakesCompleted]);},0);
-  var tD=inF.reduce(function(s,r){return s+n(r[cf.intake.columns.pendingDocs]);},0);
-  var tR=inF.reduce(function(s,r){return s+n(r[cf.intake.columns.referralOutreach]);},0);
-  var aD=inF.length?inF.reduce(function(s,r){return s+n(r[cf.intake.columns.avgDaysToIntake]);},0)/inF.length:0;
+  // ── OVERVIEW KPI CARDS WITH TRENDS ──
+  var ovKpis = [
+    {
+      lbl: 'Total AR',
+      val: fmt(tAR),
+      sub: '',
+      trend: trendHTML(tAR, arWowVal||null, arMomVal||null, fmt, false)
+      // AR going DOWN is good (collecting money)
+    },
+    {
+      lbl: 'Utilization',
+      val: up+'%',
+      sub: '<span class="'+(up>=CONFIG.utilizationTarget?'good':'bad')+'">'+( up>=CONFIG.utilizationTarget?'On target':'Below '+CONFIG.utilizationTarget+'% target')+'</span>',
+      trend: trendPctHTML(up, null, null, true)
+      // Util going UP is good
+    },
+    {
+      lbl: 'Open Positions',
+      val: fmtN(openPosNow),
+      sub: '<span class="muted">BCBA + RBT</span>',
+      trend: trendNumHTML(openPosNow, openPosWow||null, openPosMom||null, false, ' roles')
+      // Open positions going DOWN is good
+    },
+    {
+      lbl: 'Active Cases',
+      val: fmtN(aC),
+      sub: '',
+      trend: trendNumHTML(aC, activeWow||null, activeMom||null, true, ' cases')
+      // Active cases going UP is good
+    },
+    {
+      lbl: 'Unstaffed Cases',
+      val: fmtN(uC),
+      sub: uC>0?'<span class="bad">Need RBT assigned</span>':'<span class="good">All staffed</span>',
+      trend: trendNumHTML(uC, unstaffWow||null, unstaffMom||null, false, ' cases')
+      // Unstaffed going DOWN is good
+    },
+    {
+      lbl: 'New Leads',
+      val: fmtN(tL),
+      sub: tL?'<span class="muted">'+Math.round(tC/tL*100)+'% contacted &lt;24h</span>':'',
+      trend: trendNumHTML(tL, leadsWow||null, leadsMom||null, true, ' leads')
+      // More leads is good
+    },
+    {
+      lbl: 'Cases Delayed',
+      val: fmtN(tDl),
+      sub: tDl>0?'<span class="bad">Due to staffing</span>':'<span class="good">None delayed</span>',
+      trend: trendNumHTML(tDl, delayWow||null, delayMom||null, false, ' cases')
+      // Delayed going DOWN is good
+    },
+  ];
 
-  // Recruiting
-  var oBCBA=n(reL[cf.recruiting.columns.openBCBA]);
-  var oRBT=n(reL[cf.recruiting.columns.openRBT]);
-  var tAp=reF.reduce(function(s,r){return s+n(r[cf.recruiting.columns.applications]);},0);
-  var tIn=reF.reduce(function(s,r){return s+n(r[cf.recruiting.columns.interviews]);},0);
-  var tOf=reF.reduce(function(s,r){return s+n(r[cf.recruiting.columns.offers]);},0);
-  var tHi=reF.reduce(function(s,r){return s+n(r[cf.recruiting.columns.hires]);},0);
-  var tDl=reF.reduce(function(s,r){return s+n(r[cf.recruiting.columns.casesDelayed]);},0);
-  var hR=n(reL[cf.recruiting.columns.hireRate]);
+  el('overview-kpis').innerHTML = ovKpis.map(function(k){
+    return '<div class="kpi">'+
+      '<div class="kpi-lbl">'+k.lbl+'</div>'+
+      '<div class="kpi-val">'+k.val+'</div>'+
+      (k.sub?'<div class="kpi-sub">'+k.sub+'</div>':'')+
+      k.trend+
+      '</div>';
+  }).join('');
 
-  // Cases
-  var aC=n(ccL[cf.caseCoord.columns.activeCases]);
-  var uC=n(ccL[cf.caseCoord.columns.unstaffedCases]);
-  var cLaunch=n(ccL[cf.caseCoord.columns.casesLaunched]);
-  var aCC=n(ccL[cf.caseCoord.columns.avgDaysIntake]);
-
-  // BCBA summary
-  var bT=bbl.length;
-  var bM=bbl.filter(function(r){
-    var p=pctToNumber(r[cf.bcba.columns.pctToTarget]);
-    return p>=100;
-  }).length;
-  var bA=bT?bbl.reduce(function(s,r){return s+n(r[cf.bcba.columns.billableHours]);},0)/bT:0;
-
-  // ── OVERVIEW ──
-  set('ov-ar',fmt(tAR));
-  set('ov-util',up+'%');
-  el('ov-util-sub').textContent=up>=CONFIG.utilizationTarget?'On target':'Below target';
-  el('ov-util-sub').className='kpi-sub '+(up>=CONFIG.utilizationTarget?'good':'bad');
-  set('ov-leads',fmtN(tL));
-  set('ov-open',fmtN(oBCBA+oRBT));
-  set('ov-delayed',fmtN(tDl));
-  set('ov-cases',fmtN(aC));
-
+  // ── HEALTH GRID ──
   el('health-grid').innerHTML=[
     {l:'Utilization',v:up+'%',ok:up>=CONFIG.utilizationTarget,w:up>=70},
     {l:'BCBA at Target',v:bT?bM+' of '+bT:'—',ok:bT&&bM===bT,w:bT&&bM/bT>=0.75},
@@ -470,7 +640,6 @@ function renderAll(){
           '<td>'+badge(pct,100,85,['Met ✓','Watch','Below'])+'</td></tr>';
       }).join('')
     :'<tr><td colspan="5" style="color:#999;text-align:center;padding:20px">No BCBA data found</td></tr>';
-
   var bns=[...new Set((D.bcbaRows||[]).map(function(r){return r[cf.bcba.columns.bcbaName];}).filter(Boolean))];
   rmc('bcba-chart',D.bcbaRows||[],cf.bcba.columns.weekStart,cf.bcba.columns.billableHours,cf.bcba.columns.bcbaName,bns);
 
@@ -502,13 +671,12 @@ function renderAll(){
   rlc('recruit-chart',D.recruitRows||[],cf.recruiting.columns.weekStart,cf.recruiting.columns.hires,'Hires','#1a7a5e');
 }
 
-// Single line chart
 function rlc(id,rows,dc,vc,lbl,col){
   if(charts[id]){charts[id].destroy();}
   if(!rows||!rows.length)return;
   var withDates=rows.filter(function(r){return r.__date;});
   if(!withDates.length)return;
-  var sorted=withDates.sort(function(a,b){return a.__date-b.__date;}).slice(-12);
+  var sorted=withDates.slice().sort(function(a,b){return a.__date-b.__date;}).slice(-12);
   var lb=sorted.map(function(r){return fmtDate(r.__date);});
   var vl=sorted.map(function(r){return n(r[vc]);});
   charts[id]=new Chart(document.getElementById(id).getContext('2d'),{
@@ -518,7 +686,6 @@ function rlc(id,rows,dc,vc,lbl,col){
   });
 }
 
-// Multi-line chart for BCBA
 function rmc(id,rows,dc,vc,nc,names){
   if(charts[id]){charts[id].destroy();}
   if(!rows||!rows.length||!names.length)return;
@@ -530,16 +697,10 @@ function rmc(id,rows,dc,vc,nc,names){
   allDates=allDates.slice(-12);
   var lb=allDates.map(function(ds){return fmtDate(new Date(ds));});
   var ds=names.slice(0,5).map(function(nm,i){
-    return{
-      label:nm,
-      data:allDates.map(function(ds){
-        var r=withDates.find(function(x){return x.__date.toDateString()===ds&&x[nc]===nm;});
-        return r?n(r[vc]):null;
-      }),
-      borderColor:cls[i%cls.length],
-      backgroundColor:'transparent',
-      tension:.4,pointRadius:3,spanGaps:true
-    };
+    return{label:nm,data:allDates.map(function(ds){
+      var r=withDates.find(function(x){return x.__date.toDateString()===ds&&x[nc]===nm;});
+      return r?n(r[vc]):null;
+    }),borderColor:cls[i%cls.length],backgroundColor:'transparent',tension:.4,pointRadius:3,spanGaps:true};
   });
   charts[id]=new Chart(document.getElementById(id).getContext('2d'),{
     type:'line',data:{labels:lb,datasets:ds},
