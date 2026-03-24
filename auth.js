@@ -93,10 +93,11 @@ async function readSheet(fileId, sheetName) {
         obj[h] = row[i] !== undefined ? row[i] : '';
       });
       obj.__date = excelDateToJS(row[0]);
-      // Flag whether this row has real data (not just a date placeholder)
-      obj.__hasData = row.slice(1).some(function(cell) {
-        return cell !== '' && cell !== null && cell !== 0;
-      });
+      // Row has real data only if at least 2 non-date cells have actual non-zero values
+      // This prevents placeholder rows (date only, or all zeros) from being treated as data
+      obj.__hasData = row.slice(1).filter(function(cell) {
+        return cell !== '' && cell !== null && cell !== 0 && cell !== '0' && cell !== false;
+      }).length >= 2;
       return obj;
     });
 }
@@ -189,14 +190,12 @@ async function loadAllData() {
   };
 }
 
-// Gets the Nth most recent row that actually has data
-// Skips placeholder rows that have a date but no values filled in yet
+// Gets the Nth most recent row that has actual data — skips empty placeholder rows
 function nthLatest(rows, n) {
   if (!rows || !rows.length) return {};
   var withData = rows.filter(function(r) {
     return r.__date && r.__hasData;
   });
-  // Fall back to all rows with dates if none have data flag
   if (!withData.length) {
     withData = rows.filter(function(r) { return r.__date; });
   }
