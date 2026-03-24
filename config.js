@@ -49,6 +49,7 @@ const CONFIG = {
         contacted24h:     'Contacted <24h',
         pctContacted:     '% Contacted',
         intakesCompleted: 'Intakes Completed',
+        leadsInPool:      'Total Leads in Pool',
         conversionPct:    'Conversion %',
         avgDaysToIntake:  'Avg Days to Intake',
         pendingDocs:      'Pending Documents',
