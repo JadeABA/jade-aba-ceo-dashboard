@@ -93,6 +93,10 @@ async function readSheet(fileId, sheetName) {
         obj[h] = row[i] !== undefined ? row[i] : '';
       });
       obj.__date = excelDateToJS(row[0]);
+      // Flag whether this row has real data (not just a date placeholder)
+      obj.__hasData = row.slice(1).some(function(cell) {
+        return cell !== '' && cell !== null && cell !== 0;
+      });
       return obj;
     });
 }
@@ -140,13 +144,10 @@ async function loadAllData() {
   const totalSched = n(cellResults[2]);
   const openHrs    = Math.round((totalAvail - totalSched) * 10) / 10;
 
-  // Read client utilization table directly — rows 12 to 41 (first 30 clients)
-  // Columns: A=Client, B=Available, C=Scheduled, D=Util%
-  const clientRows = await readRange(f.utilization.fileId, f.utilization.sheetName, 'A12:D41');
+  const clientRows    = await readRange(f.utilization.fileId, f.utilization.sheetName, 'A12:D41');
   const therapistRows = await readRange(f.utilization.fileId, f.utilization.sheetName, 'F12:I31');
 
-  let clientsLow = 0;
-  let clientsTotal = 0;
+  let clientsLow = 0, clientsTotal = 0;
   clientRows.forEach(function(row) {
     const name = row[0];
     const util = n(row[3]);
@@ -157,8 +158,7 @@ async function loadAllData() {
     }
   });
 
-  let therapistsLow = 0;
-  let therapistsTotal = 0;
+  let therapistsLow = 0, therapistsTotal = 0;
   therapistRows.forEach(function(row) {
     const name = row[0];
     const util = n(row[3]);
@@ -189,13 +189,49 @@ async function loadAllData() {
   };
 }
 
-function latestRow(rows, weekCol) {
+// Gets the Nth most recent row that actually has data
+// Skips placeholder rows that have a date but no values filled in yet
+function nthLatest(rows, n) {
   if (!rows || !rows.length) return {};
-  const withDates = rows.filter(function(r) { return r.__date; });
-  if (!withDates.length) return rows[rows.length - 1] || {};
-  return withDates.reduce(function(best, row) {
-    return row.__date > best.__date ? row : best;
+  var withData = rows.filter(function(r) {
+    return r.__date && r.__hasData;
   });
+  // Fall back to all rows with dates if none have data flag
+  if (!withData.length) {
+    withData = rows.filter(function(r) { return r.__date; });
+  }
+  if (!withData.length) return rows[rows.length - 1] || {};
+  var sorted = withData.slice().sort(function(a, b) { return b.__date - a.__date; });
+  return sorted[n] || sorted[sorted.length - 1] || {};
+}
+
+function rowFromWeeksAgo(rows, weeksAgo) {
+  if (!rows || !rows.length) return {};
+  var latest = nthLatest(rows, 0);
+  if (!latest.__date) return {};
+  var target   = new Date(latest.__date.getTime() - weeksAgo * 7 * 24 * 60 * 60 * 1000);
+  var best     = null, bestDiff = Infinity;
+  rows.forEach(function(r) {
+    if (!r.__date || !r.__hasData) return;
+    var diff = Math.abs(r.__date.getTime() - target.getTime());
+    if (diff < bestDiff && diff < 10 * 24 * 60 * 60 * 1000) { bestDiff = diff; best = r; }
+  });
+  return best || {};
+}
+
+function rowFromMonthsAgo(rows, monthsAgo) {
+  if (!rows || !rows.length) return {};
+  var latest = nthLatest(rows, 0);
+  if (!latest.__date) return {};
+  var target   = new Date(latest.__date);
+  target.setMonth(target.getMonth() - monthsAgo);
+  var best     = null, bestDiff = Infinity;
+  rows.forEach(function(r) {
+    if (!r.__date || !r.__hasData) return;
+    var diff = Math.abs(r.__date.getTime() - target.getTime());
+    if (diff < bestDiff && diff < 21 * 24 * 60 * 60 * 1000) { bestDiff = diff; best = r; }
+  });
+  return best || {};
 }
 
 function filterRange(rows, weekCol, range) {
@@ -210,11 +246,11 @@ function filterRange(rows, weekCol, range) {
     return row.__date && row.__date >= cutoff;
   });
   if (filtered.length === 0) {
-    const latest = latestRow(rows, weekCol);
+    const latest = nthLatest(rows, 0);
     if (!latest || !latest.__date) return rows.slice(-5);
     const latestTime = latest.__date.getTime();
     return rows.filter(function(r) {
-      return r.__date && Math.abs(r.__date.getTime() - latestTime) < 8*24*60*60*1000;
+      return r.__date && Math.abs(r.__date.getTime() - latestTime) < 8 * 24 * 60 * 60 * 1000;
     });
   }
   return filtered;
