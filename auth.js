@@ -93,11 +93,13 @@ async function readSheet(fileId, sheetName) {
         obj[h] = row[i] !== undefined ? row[i] : '';
       });
       obj.__date = excelDateToJS(row[0]);
-      // Row has real data only if at least 2 non-date cells have actual non-zero values
-      // This prevents placeholder rows (date only, or all zeros) from being treated as data
-      obj.__hasData = row.slice(1).filter(function(cell) {
-        return cell !== '' && cell !== null && cell !== 0 && cell !== '0' && cell !== false;
-      }).length >= 2;
+      // Check only columns 2-7 (skip the two date columns at start)
+      // This avoids formula columns like WoW% and date formulas triggering false positives
+      obj.__hasData = row.slice(2, 8).filter(function(cell) {
+        return cell !== '' && cell !== null && cell !== 0 &&
+               cell !== '0' && cell !== false && cell !== '0.0%' &&
+               !(typeof cell === 'number' && cell === 0);
+      }).length >= 1;
       return obj;
     });
 }
