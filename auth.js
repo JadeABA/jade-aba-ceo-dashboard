@@ -4,7 +4,9 @@ let _msalApp = null;
 function excelDateToJS(val) {
   if (!val && val !== 0) return null;
   if (typeof val === 'number' && val > 40000) {
-    return new Date(Math.round((val - 25569) * 86400 * 1000));
+    // Convert Excel serial to JS date using UTC components to avoid timezone shift
+    var d = new Date(Math.round((val - 25569) * 86400 * 1000));
+    return new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
   }
   if (typeof val === 'string' && /^\d+\.\d+\.\d+$/.test(val.trim())) {
     const p = val.trim().split('.');
@@ -192,7 +194,6 @@ async function loadAllData() {
   };
 }
 
-// Gets the Nth most recent row that has actual data — skips empty placeholder rows
 function nthLatest(rows, n) {
   if (!rows || !rows.length) return {};
   var withData = rows.filter(function(r) {
