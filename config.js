@@ -90,18 +90,10 @@ const CONFIG = {
     },
 
     utilization: {
-      fileId:    '01SYCMTOTKJVIYNS55UVBLBAH2GUICBXBO',
-      sheetName: 'Weekly_Utilization_Dashboard',
-      cells: {
-        totalAuthorized:   'B4',
-        totalAvailable:    'B5',
-        totalScheduled:    'B6',
-        overallUtilPct:    'B7',
-        clientsUnder80:    'J5',
-        therapistsUnder70: 'J6',
-        openHours:         'J7',
-      }
+      fileId:    '01SYCMTOXV5Z5GZPWFLJFIOPOFTYZATB53',
+      sheetName: '\uD83D\uDCCA Utilization',
     }
+
   },
 
   companyName:         'Jade ABA Therapy',
